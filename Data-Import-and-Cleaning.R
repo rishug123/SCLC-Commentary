@@ -1,4 +1,4 @@
-setwd("/Users/rishabhgarg/Documents/R Directories/CancerEffectSizeR/SCLC/files") 
+setwd("files") 
 
 # Import external required packages
 library(BiocManager)
@@ -91,7 +91,6 @@ if (!file.exists(Rudin_et_al)) {
 rudin_et_al <- read_excel(Rudin_et_al, sheet = 4, skip = 1)
 rudin_et_al <- rudin_et_al[, 1:18]  # Keep only relevant columns
 rudin_et_al$End_Position <- NA
-length(unique(rudin_et_al$Unique_Patient_Identifier))
 
 
 setnames(rudin_et_al, old = "Position", new = "Start_Position", skip_absent=TRUE)
@@ -101,6 +100,8 @@ setnames(rudin_et_al, old = "Ref", new = "Reference_Allele", skip_absent=TRUE)
 setnames(rudin_et_al, old = "Var", new = "Tumor_Seq_Allele", skip_absent=TRUE)
 setnames(rudin_et_al, old = "GeneName", new = "Hugo_Symbol", skip_absent=TRUE)
 setnames(rudin_et_al, old = "Sift", new = "Variant_Classification", skip_absent=TRUE)
+
+
 
 rudin_et_al_maf <- preload_maf(maf = rudin_et_al, refset = "ces.refset.hg19", tumor_allele_col = "Tumor_Seq_Allele", keep_extra_columns = maf_format)
 
