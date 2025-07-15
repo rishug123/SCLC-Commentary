@@ -113,8 +113,8 @@ sbs13_surv_bs_distribution <- ggplot(sbs13_surv_df, aes(x = cutoff)) +
 
 
 paper_signatures <- as.data.table(paper_signatures)
-paper_signatures <- merge(paper_signatures, biological_weights_paper[, .(Unique_Patient_Identifier, total_snvs)], by = "Unique_Patient_Identifier")
-data_paper_sig <- paper_signatures[, .(total_snvs, SBS4, SBS5, SBS13)]
+paper_signatures_merged <- merge(paper_signatures, biological_weights_paper[, .(Unique_Patient_Identifier, total_snvs)], by = "Unique_Patient_Identifier")
+data_paper_sig <- paper_signatures_merged[, .(total_snvs, SBS4, SBS5, SBS13)]
 data_paper_sig <- data_paper_sig[complete.cases(data_paper_sig),]
 
 SBS4_0.25_cutoff_paper_signatures <- plot_TMB_binary_boxplot(data_paper_sig, "SBS4", 0.25, "(Binary for Signature Presence: 0.25)")

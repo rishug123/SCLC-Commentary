@@ -740,7 +740,7 @@ plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label) {
   # Calculate Wilcoxon p-value
   p_value <- wilcox.test(total_snvs ~ x_group, data = data)$p.value
   if (p_value > 0.01){
-    p_label <- paste0("italic(P) == ", round(p_value, digits = num_digits_after_decimal))
+    p_label <- paste0("italic(P) == ", signif(p_value, num_digits_after_decimal))
   } else{
     p_value <- gsub("e(-?\\d+)", " %*% 10^{\\1}", formatC(p_value, format = "e", digits = num_digits_after_decimal))
     p_label <- paste0("italic(P) == ", p_value)
@@ -792,7 +792,7 @@ plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label) {
       legend.title = element_text(size = font, face = "plain", color = "black"),  # Fixed: proper styling
       legend.text = element_text(size = font, face = "plain", color = "black"),
       legend.position = "top",
-      plot.margin = margin(t = 1, r = 1, b = 1, l = 1)
+      plot.margin = margin(t = 1, r = 1, b = 1, l = 5)
     ) +
     
     # Add the legend title using labs()
@@ -826,14 +826,14 @@ plot_TMB_logistic_regression <- function(biological_weights_table, dataset, sign
     model <- lm(log10_TMB ~ Proportion_Signature, data = data)
     coefs <- coef(model)
     summary_lm <- summary(model)
-    r2_val <- round(summary_lm$r.squared, num_digits_after_decimal)
+    r2_val <- signif(summary_lm$r.squared, num_digits_after_decimal)
     p_val  <- summary_lm$coefficients[2, 4]
     
     # Equation string
     eqn_string <- paste0(
-      "italic(y) == ", round(coefs[1], num_digits_after_decimal),
+      "italic(y) == ", signif(coefs[1], num_digits_after_decimal),
       if (coefs[2] >= 0) " + " else " - ",
-      abs(round(coefs[2], num_digits_after_decimal)), " * italic(x)"
+      abs(signif(coefs[2], num_digits_after_decimal)), " * italic(x)"
     )
     
     # R² string — needs proper plotmath syntax
@@ -841,7 +841,7 @@ plot_TMB_logistic_regression <- function(biological_weights_table, dataset, sign
     
     # P-value string — format in scientific notation with plotmath style
     if (p_val > 0.01){
-      p_label <- paste0("italic(P) == ", round(p_val, digits = num_digits_after_decimal))
+      p_label <- paste0("italic(P) == ", signif(p_val, num_digits_after_decimal))
     } else{
       p_value <- gsub("e(-?\\d+)", " %*% 10^{\\1}", formatC(p_val, format = "e", digits = num_digits_after_decimal))
       p_label <- paste0("italic(P) == ", p_value)
@@ -1741,7 +1741,7 @@ analyze_signature_with_covariate <- function(signature_name, dataset, biological
     tryCatch({
       pos_diff <- survdiff(Surv(time = overall_survival_months, event = status_numeric) ~ get(covariate_information), data = pos_data)
       pos_pval <- 1 - pchisq(pos_diff$chisq, length(pos_diff$n) - 1)
-      p_values$within_High <- round(pos_pval, 3)
+      p_values$within_High <- signif(pos_pval, 2)
     }, error = function(e) {
       p_values$within_High <- NA
     })
@@ -1755,7 +1755,7 @@ analyze_signature_with_covariate <- function(signature_name, dataset, biological
     tryCatch({
       neg_diff <- survdiff(Surv(time = overall_survival_months, event = status_numeric) ~ get(covariate_information), data = neg_data)
       neg_pval <- 1 - pchisq(neg_diff$chisq, length(neg_diff$n) - 1)
-      p_values$within_Low <- round(neg_pval, 3)
+      p_values$within_Low <- signif(neg_pval, 2)
     }, error = function(e) {
       p_values$within_Low <- NA
     })
@@ -1770,7 +1770,7 @@ analyze_signature_with_covariate <- function(signature_name, dataset, biological
       tryCatch({
         cov_diff <- survdiff(Surv(time = overall_survival_months, event = status_numeric) ~ signature_status, data = cov_data)
         cov_pval <- 1 - pchisq(cov_diff$chisq, length(cov_diff$n) - 1)
-        p_values[[paste0("between_", cov_val)]] <- round(cov_pval, 3)
+        p_values[[paste0("between_", cov_val)]] <- signif(cov_pval, 2)
       }, error = function(e) {
         p_values[[paste0("between_", cov_val)]] <- NA
       })
@@ -1868,7 +1868,8 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
   }
   
   # Helper function to create survival plot
-  create_survival_plot <- function(surv_fit, data, threshold_label, dataset) {
+  create_survival_plot <- function(surv_fit, surv_diff, data, threshold_label, dataset) {
+    p_label <- paste0("italic(P) == ", signif(surv_diff$pvalue, 2))
     plot <- ggsurvplot(
       fit = surv_fit,
       data = data,
@@ -1876,7 +1877,7 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
       break.x.by = 20,
       ylab = "Survival probability",
       xlab = "Overall survival (months)",
-      pval = TRUE,
+      pval = FALSE,
       risk.table = TRUE,
       risk.table.height = 0.20,
       legend.labs = c(paste0(signature_name, " low (< ", threshold_label, ")"), 
@@ -1910,7 +1911,9 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
         axis.title.y = element_text(size = font, face = "plain", color = "black"),
         axis.text.x = element_text(size = font, face = "plain", color = "black"),
         axis.text.y = element_text(size = font, face = "plain", color = "black")
-      )
+      ) +
+      annotate("text", x = 10, y = 0.125, label = p_label, parse = TRUE, size = font / 2.833)
+    
     
     return(plot)
   }
@@ -1922,7 +1925,8 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
   # Perform survival analysis for 0.25 cutoff
   binary_hazard_ratio <- coxph(Surv(overall_survival_months, status_numeric) ~ group, data = binary_df)
   binary_surv_fit <- survfit(Surv(overall_survival_months, status_numeric) ~ group, data = binary_df)
-  binary_plot <- create_survival_plot(binary_surv_fit, binary_df, "0.25", dataset)
+  binary_surv_diff <- survdiff(Surv(overall_survival_months, status_numeric) ~ group, data = binary_df)
+  binary_plot <- create_survival_plot(binary_surv_fit, binary_surv_diff, binary_df, "0.25", dataset)
   
   # Determine optimal cutoff
   optimal_cutoff <- switch(signature_name,
@@ -1947,7 +1951,8 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
     # Perform survival analysis for optimal cutoff
     optimal_hazard_ratio <- coxph(Surv(overall_survival_months, status_numeric) ~ group, data = optimal_df)
     optimal_surv_fit <- survfit(Surv(overall_survival_months, status_numeric) ~ group, data = optimal_df)
-    optimal_plot <- create_survival_plot(optimal_surv_fit, optimal_df, optimal_cutoff, dataset)
+    optimal_surv_diff <- survdiff(Surv(overall_survival_months, status_numeric) ~ group, data = optimal_df)
+    optimal_plot <- create_survival_plot(optimal_surv_fit, optimal_surv_diff, optimal_df, optimal_cutoff, dataset)
     
     # Add optimal results to the results list
     results <- c(results, list(

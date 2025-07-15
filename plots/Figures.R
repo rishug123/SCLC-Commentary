@@ -1,4 +1,4 @@
-setwd("/Users/rishabhgarg/Documents/R Directories/CancerEffectSizeR/SCLC/plots") # the location the r script will save
+setwd("plots") # the location the r script will save
 
 # Fig 1
 Fig1a <- diverging_plot_sig_comparison

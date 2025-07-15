@@ -133,7 +133,7 @@ msk_met_all_txt_file <- msk_met_all_txt_file %>%
 # View files for downloaded msk_met clinical data
 
 # Set file path
-file_path <- "/Users/rishabhgarg/Documents/R Directories/CancerEffectSizeR/SCLC/files/Msk_met_all_clinical.xlsx" # NIHMS1774757-supplement-5.xlsx from Nguyen et al., 2022 (Cell)
+file_path <- "Msk_met_all_clinical.xlsx" # NIHMS1774757-supplement-5.xlsx from Nguyen et al., 2022 (Cell)
 
 # Read the Excel file
 msk_met_all_clinical <- read.xlsx(file_path, sheet = 2, startRow = 3, cols = 1:28)
@@ -361,9 +361,9 @@ zhou_et_al_clinical <- zhou_et_al_clinical %>%
 
 # GENIE
 
-GENIE_all_file_path_txt <- "/Users/rishabhgarg/Documents/R Directories/CancerEffectSizeR/SCLC/files/GENIE_v17/data_mutations_extended.txt"
-GENIE_all_file_path_clinical <- "/Users/rishabhgarg/Documents/R Directories/CancerEffectSizeR/SCLC/files/GENIE_v17/data_clinical_sample.txt"
-genomic_info_file_path <- "/Users/rishabhgarg/Documents/R Directories/CancerEffectSizeR/SCLC/files/GENIE_v17/genomic_information.txt"
+GENIE_all_file_path_txt <- "GENIE_v17/data_mutations_extended.txt"
+GENIE_all_file_path_clinical <- "GENIE_v17/data_clinical_sample.txt"
+genomic_info_file_path <- "GENIE_v17/genomic_information.txt"
 
 
 
