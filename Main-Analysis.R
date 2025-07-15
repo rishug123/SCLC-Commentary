@@ -1,4 +1,4 @@
-setwd("/Users/rishabhgarg/Documents/R Directories/CancerEffectSizeR/SCLC") # the location the r script will save
+setwd("..") # the location the r script will save
 
 # -----Define reference data set and load data into cesa----------
 

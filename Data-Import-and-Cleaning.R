@@ -1,4 +1,5 @@
-setwd("files") 
+setwd("/Users/rishabhgarg/Documents/R Directories/CancerEffectSizeR/SCLC-Commentary")
+setwd("files")
 
 # Import external required packages
 library(BiocManager)

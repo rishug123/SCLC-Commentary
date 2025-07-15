@@ -1,5 +1,3 @@
-setwd("/Users/rishabhgarg/Documents/R Directories/CancerEffectSizeR/SCLC/files")
-
 # Create a summary of all genomic and clinical data
 
 summarize_maf_sources <- function(cesa_all) {
