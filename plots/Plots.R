@@ -49,7 +49,7 @@ plot_TMB_binary_boxplot(data_paper, "SBS5", 0.25, "(Binary for Signature Presenc
 
 # to look more into:
 SBS87_0.25 <- plot_TMB_binary_boxplot(data_paper, "SBS87", SBS87_paper_optimal_TMB_cutoff_for_paper_non_bs$estimate, "(Binary for Signature Presence: 0.25)")
-SBS24_0.25 <- plot_TMB_binary_boxplot(data_paper, "SBS24", 0.25, "(Binary for Signature Presence: 0.25)")
+SBS24_0.25 <- plot_TMB_binary_boxplot(data_paper, "SBS24", 0.21, "(Binary for Signature Presence: 0.25)")
 
 # Convert data to data.frames for ggplot2
 sbs13_tmb_df <- data.frame(cutoff = SBS13_TMB_optimal_cutoff_paper[[1]])
@@ -74,7 +74,7 @@ sbs4_tmb_bs_distribution <- ggplot(sbs4_tmb_df, aes(x = cutoff)) +
   geom_vline(aes(xintercept = SBS4_TMB_optimal_cutoff_paper_mean, color = "Bootstrap Mean"), size = 1) +
   scale_color_manual(name = NULL, values = c("Non-Bootstrapped Cutoff" = "red", "Bootstrap Mean" = "green")) +
   scale_x_continuous(limits = c(sbs4_min, sbs4_max)) +
-  labs(title = "Bootstrap Distribution of Optimal SBS4 TMB Cutoff (Paper Data)", x = "SBS4 TMB Cutoff Value", y = "Frequency") +
+  labs(title = "Bootstrap Distribution of Optimal SBS4 TMB Cutoff (Paper Data)", x = "SBS4 TMB cutoff value", y = "Frequency") +
   theme_minimal(base_size = font_size) +
   theme(legend.position = "top")
 
@@ -85,7 +85,7 @@ sbs4_surv_bs_distribution <- ggplot(sbs4_surv_df, aes(x = cutoff)) +
   geom_vline(aes(xintercept = SBS4_survival_optimal_cutoff_paper_mean, color = "Bootstrap Mean"), size = 1) +
   scale_color_manual(name = NULL, values = c("Non-Bootstrapped Cutoff" = "red", "Bootstrap Mean" = "green")) +
   scale_x_continuous(limits = c(sbs4_min, sbs4_max)) +
-  labs(title = "Bootstrap Distribution of Optimal SBS4 Survival Cutoff (Paper Data)", x = "SBS4 Survival Cutoff Value", y = "Frequency") +
+  labs(title = "Bootstrap Distribution of Optimal SBS4 Survival Cutoff (Paper Data)", x = "SBS4 survival cutoff value", y = "Frequency") +
   theme_minimal(base_size = font_size) +
   theme(legend.position = "top")
 
@@ -96,7 +96,7 @@ sbs13_tmb_bs_distribution <- ggplot(sbs13_tmb_df, aes(x = cutoff)) +
   geom_vline(aes(xintercept = SBS13_TMB_optimal_cutoff_paper_mean, color = "Bootstrap Mean"), size = 1) +
   scale_color_manual(name = NULL, values = c("Non-Bootstrapped Cutoff" = "red", "Bootstrap Mean" = "green")) +
   scale_x_continuous(limits = c(sbs13_min, sbs13_max)) +
-  labs(title = "Bootstrap Distribution of Optimal SBS13 TMB Cutoff (Paper Data)", x = "SBS13 TMB Cutoff Value", y = "Frequency") +
+  labs(title = "Bootstrap Distribution of Optimal SBS13 TMB Cutoff (Paper Data)", x = "SBS13 TMB cutoff value", y = "Frequency") +
   theme_minimal(base_size = font_size) +
   theme(legend.position = "top")
 
@@ -107,7 +107,7 @@ sbs13_surv_bs_distribution <- ggplot(sbs13_surv_df, aes(x = cutoff)) +
   geom_vline(aes(xintercept = SBS13_survival_optimal_cutoff_paper_mean, color = "Bootstrap Mean"), size = 1) +
   scale_color_manual(name = NULL, values = c("Non-Bootstrapped Cutoff" = "red", "Bootstrap Mean" = "green")) +
   scale_x_continuous(limits = c(sbs13_min, sbs13_max)) +
-  labs(title = "Bootstrap Distribution of Optimal SBS13 Survival Cutoff (Paper Data)", x = "SBS13 Survival Cutoff Value", y = "Frequency") +
+  labs(title = "Bootstrap Distribution of Optimal SBS13 Survival Cutoff (Paper Data)", x = "SBS13 survival cutoff value", y = "Frequency") +
   theme_minimal(base_size = font_size) +
   theme(legend.position = "top")
 
