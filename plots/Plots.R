@@ -24,13 +24,6 @@ SBS13_survival_0.25_external <- SBS13_results$external$plot_0.25
 SBS4_survival_optimal_external <- SBS4_results$external$plot_optimal
 SBS13_survival_optimal_external <- SBS13_results$external$plot_optimal
 
-# Mutational Signature Attribution Analysis
-
-results_external <- plot_signature_attribution(
-  signature_attribution_external,
-  "external data")
-results_external
-
 ##--------------- ANALYSIS FOR CESA_PAPER (paper data)-------
 # Plot box plot of log(TMB) vs mutations attributed to SBS4 and SBS13
 data_paper <- biological_weights_paper[, .(total_snvs, SBS3, SBS4, SBS5, SBS13, SBS24, SBS31, SBS87)]
@@ -152,10 +145,6 @@ SBS13_0.25_cutoff_survival_paper_signatures
 
 # Mutational Signature Analysis
 
-results_paper <- plot_signature_attribution(
-  signature_attribution_paper,
-  "paper data")
-results_paper
 diverging_plot_sig_comparison <- create_diverging_signature_plot(Li_data = paper_signatures, ref_based_data = biological_weights_paper)
 diverging_plot_sig_comparison
 
@@ -178,10 +167,3 @@ all_TMB_linreg_SBS5 <- plot_TMB_logistic_regression(biological_weights_all, "all
 SBS5_results$all
 SBS4_results$all
 SBS13_results$all
-
-# Mutational Signature Analysis
-
-results_all <- plot_signature_attribution(
-  signature_attribution_all,
-  "all data")
-results_all

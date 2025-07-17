@@ -913,926 +913,6 @@ plot_TMB_logistic_regression <- function(biological_weights_table, dataset, sign
   return(plot)
 }              
 
-# Adapted directly from cancereffectsizeR; only change is expansion of definition of previously treated signatures
-plot_signature_effects_modified = function(mutational_effects = NULL,
-                                  signature_groupings = 'auto',
-                                  viridis_option = NULL,
-                                  num_sig_groups = 7, other_color = 'white') {
-  if(! require("ggplot2")) {
-    stop('Package ggplot2 must be installed for plotting.')
-  }
-  
-  if(! rlang::is_scalar_character(other_color)) {
-    stop('other_color should be 1-length character.')
-  }
-  
-  if(! is.numeric(num_sig_groups) || length(num_sig_groups) != 1 || 
-     num_sig_groups - as.integer(num_sig_groups) != 0 || num_sig_groups < 1) {
-    stop('num_sig_groups must be a High integer.')
-  }
-  
-  running_cannataro = identical(tolower(signature_groupings), 'cannataro')
-  using_cannataro_colors = is.null(viridis_option) && running_cannataro
-  
-  if(is.null(viridis_option)) {
-    viridis_option = 'G'
-  } else if(! is.character(viridis_option) || length(viridis_option) != 1 || ! nchar(viridis_option) == 1) {
-    stop('Specify viridis color map with a single letter ("A"-"H")')
-    # Will leave the specific viridis character unvalidated, in case more maps are created in the future.
-  }
-  viridis_option = toupper(viridis_option)
-  
-  # If num_sig_groups is not default, warn that num_sig_groups is ignored under cannataro
-  if(num_sig_groups != 7 && running_cannataro) {
-    warning('Ignoring num_sig_groups because signature_groupings = "cannataro".')
-  }
-  
-  # assign signature_groupings to table according to signature_groupings parameter
-  if (identical(signature_groupings, 'auto')) {
-    signature_groupings = cosmic_signature_info()
-  } 
-  
-  # Check that mutational_effects is mutational_signature_effects() output, or a list of such outputs.
-  if (is(mutational_effects, 'list') && length(mutational_effects) == 2 &&
-      identical(names(mutational_effects), c("mutational_sources", "effect_shares"))) {
-    
-    # Convert a single mutational effects output into 1-length list.
-    mutational_effects = list(mutational_effects)
-    sample_groupings = NA
-    
-  } else if (is(mutational_effects, 'list') && ! is.null(names(mutational_effects)) &&
-             all(sapply(mutational_effects, function(x) length(x) == 2 &&
-                        identical(names(x), c("mutational_sources", "effect_shares"))))) {
-    # Check that mutational_effects is a named list containing expected outputs.
-    # If so, extract names and put into sample_groupings.
-    sample_groupings = names(mutational_effects)
-    if(uniqueN(setdiff(sample_groupings, '')) != length(sample_groupings)) {
-      stop('mutational_effects list entries should have unique names')
-    }
-  } else {
-    stop('mutational_effects must be mutational_signature_effects() output or a named list of such outputs.')
-  }
-  
-  # Create empty list to load data into
-  final_df_list = list()
-  
-  df_weights = rbindlist(lapply(mutational_effects,
-                                function(x) {
-                                  weights = x$mutational_sources$average_source_shares
-                                  data.table(type = 'SW', prop = weights, name = names(weights))
-                                }), idcol = 'sample_group')
-  df_effects = rbindlist(lapply(mutational_effects,
-                                function(x) {
-                                  effects = x$effect_shares$average_effect_shares
-                                  data.table(type = 'CEW', prop = effects, name = names(effects))
-                                }), idcol = 'sample_group')
-  df_final = rbind(df_weights, df_effects)
-  
-  if (running_cannataro) {
-    # group signatures into suggested categories as outlined in Cannataro et al.
-    signature_groupings = list(
-      "Deamination with age, clock-like (1)" = "SBS1",
-      "Unknown, clock-like (5)" = "SBS5",
-      "APOBEC (2, 13)" = c("SBS2", "SBS13"),
-      "Defective homologous recombination (3)" = "SBS3",
-      "Tobacco (4, 29)" = c("SBS4", "SBS29"),
-      "UV light (7a–d, 38)" = c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS38"),
-      "Treatment (11, 31, 32, 35, 86, 87, 90)" = c("SBS11", "SBS31", "SBS32", "SBS35", "SBS86", "SBS87", "SBS90"),
-      "Mutagenic chemical exposure (22, 24, 42, 88)" = c("SBS22", "SBS24", "SBS42", "SBS88"),
-      "Alcohol-associated (16)" = "SBS16"
-    )
-    other_label = "Non-actionable and unknown signatures"
-    
-  } else if(! is.data.table(signature_groupings)) {
-    stop('signature_groupings should be "auto", "cannataro", or a data.table describing the signatures (see docs).')
-  } else {
-    
-    if(length(signature_groupings) != uniqueN(names(signature_groupings))) {
-      stop('Input signature_groupings table has repeated column names.')
-    }
-    required_cols = c('name', 'short_name', 'description')
-    missing_cols = setdiff(required_cols, names(signature_groupings))
-    if(length(missing_cols) > 0) {
-      stop('Missing columns in signature_groupings table: ', paste0(missing_cols, collapse = ', '), '.')
-    }
-    for(col in required_cols) {
-      if(! is.character(signature_groupings[[col]])) {
-        stop("Column ", col, " should be type character.")
-      }
-    }
-    
-    if('other signatures' %in% signature_groupings$description) {
-      stop('signature_groupings has signatures with description \"other signatures\", which is reserved.')
-    }
-    other_label = 'other signatures'
-    
-    all_effect_shares = rbindlist(lapply(mutational_effects, function(x) as.list(x$effect_shares$average_effect_shares)), idcol = 'cohort')
-    shares_melted = melt.data.table(all_effect_shares, id.vars = 'cohort', variable.factor = F, variable.name = 'name')
-    
-    # Subset signature groupings to only include signatures that actually appear
-    signature_groupings = signature_groupings[name %in% shares_melted$name]
-    signature_groupings[is.na(short_name), short_name := '']
-    signature_groupings[is.na(description) | description == '',
-                        let(description = short_name, short_name = '')]
-    
-    
-    shares_melted[signature_groupings, c('description', 'short_name') := .(description, short_name), on = 'name']
-    
-    # Don't consider signatures in other groups (they'll be represented in the "other" group)
-    shares_melted = shares_melted[! is.na(short_name)]
-    shares_melted[, sig_grp_id := .GRP, by = 'description']
-    summed_shares = shares_melted[, .(in_grp_sum = sum(value), description = description[1]), by = c('cohort', 'sig_grp_id')]
-    
-    prioritized_ids = character()
-    if('prioritize' %in% names(signature_groupings)) {
-      if(! is.logical(signature_groupings$prioritize)) {
-        stop('The optional prioritize column in signature_groupings is expected to be type logical.')
-      }
-      if(uniqueN(signature_groupings[, .(description, prioritize)]) != uniqueN(signature_groupings$description)) {
-        stop('Unusable prioritize column in signature_groupings table: Must have consistent value for all signatures with matching description..')
-      }
-      summed_shares[signature_groupings, prioritize := prioritize, on = 'description']
-      prioritized_ids = summed_shares[prioritize == T, unique(sig_grp_id)]
-    }
-    
-    top_grp_ids = summed_shares[order(-in_grp_sum)][, unique(sig_grp_id)]
-    top_grp_ids = na.omit(unique(c(prioritized_ids, top_grp_ids))[1:num_sig_groups])
-    
-    final_groupings = list()
-    for(id in top_grp_ids) {
-      grp_info = shares_melted[sig_grp_id == id]
-      short_names = paste(unique(grp_info$short_name), collapse = ', ')
-      descrip = grp_info$description[1]
-      if(short_names != '') {
-        short_names = paste0('(', short_names, ')')
-      }
-      curr_descrip = paste0(grp_info$description[1], ' ', short_names)
-      if(nchar(curr_descrip) > 45) {
-        curr_descrip = paste0(grp_info$description[1], '', short_names)
-      }
-      curr_sigs = unique(grp_info$name)
-      final_groupings[[curr_descrip]] = curr_sigs
-    }
-    
-    if('color' %in% names(signature_groupings)) {
-      if(! is.character(signature_groupings$color)) {
-        stop('The optional color column in signature_groupings is expected to be type character.')
-      }
-      if(uniqueN(signature_groupings[, .(description, color)]) != uniqueN(signature_groupings$description)) {
-        stop('Unusable color column in signature_groupings table: Exactly one color must be associated with each signature group.')
-      }
-      sig_to_color = unique(signature_groupings[, .(name, color)])
-      df_final[sig_to_color, color := color, on = 'name']
-      df_final[! name %in% unlist(final_groupings), color := NA]
-    }
-    signature_groupings = final_groupings
-  }
-  
-  # Signatures present in data but not represented in a signature grouping join "other" signatures
-  other_signatures = setdiff(df_effects$name, unlist(signature_groupings))
-  
-  if(all(unlist(signature_groupings) %like% '^SBS') && ! all(other_signatures %like% '^SBS')) {
-    msg = paste0('Data contains some non-SBS signatures, but the signature_groupings table only describes SBS signatures. ',
-                 'Non-SBS signatures will all be grouped with "', other_label, '". Consider updating ',
-                 'the signature_groupings to include these signatures.')
-    warning(pretty_message(msg, emit = F))
-  }
-  signature_groupings[[other_label]] = other_signatures
-  
-  
-  # Unwind list to get a table matching signatures to their labels
-  signature_labels = rbindlist(lapply(1:length(signature_groupings), 
-                                      function(x) data.table(name = signature_groupings[[x]], 
-                                                             label = names(signature_groupings)[x])))
-  # create group column and assign signature_groupings
-  # nested loop syntax is for cases when signature_groupings contains several signatures
-  # Ex: "UV light" = SBS7a-d and SBS38
-  df_final[signature_labels, group := label, on = 'name']
-  
-  # first, we reorder and rename some values to make the graph pretty.
-  # reorder facets because the order is weird
-  df_final$facet = factor(df_final$sample_group,
-                          levels = sample_groupings)
-  # rename values
-  df_final$weight_type = ifelse(df_final$type == "SW",
-                                "Source\nshare",
-                                "Effect\nshare")
-  # reorder weight bars manually to show Source Share, then Effect Share
-  df_final$weight_type = factor(
-    df_final$weight_type,
-    levels = c("Effect\nshare", "Source\nshare")
-  )
-  # Order signature groups by mean effect share (or use the cannataro order)
-  summed_shares = df_final[type == 'CEW' & group != other_label, .(summed_share = sum(prop)), by = c('group', 'sample_group')]
-  mean_share_order = summed_shares[, .(mean_share = mean(summed_share)), by = 'group'][order(mean_share), group]
-  final_order = c(other_label, mean_share_order)
-  df_final$group = factor(df_final$group, levels = final_order)
-  
-  gg = ggplot(data = df_final) +
-    geom_bar(
-      mapping = aes(
-        y = weight_type,
-        fill = group,
-        weight = prop
-      ),
-      position = 'fill',
-      width = .9,
-      color = 'black'
-    ) +
-    xlab('Proportion') + ylab('') +
-    theme_classic() + theme(
-      axis.ticks.y = element_blank(),
-      axis.title.x = element_text(size = 10),
-      axis.text.y = element_text(size = 8),
-      axis.line.y = element_blank(),
-      legend.position = 'right') +
-    scale_x_continuous(n.breaks = 10, limits = c(-0.001, 1.001), expand = expansion(add = 0))
-  if(! any(is.na(df_final$facet))) {
-    gg = gg + facet_wrap(~ facet, ncol = 1, strip.position = 'left') + 
-      theme(strip.background = element_blank(), strip.placement = 'outside', 
-            strip.text.y.left = element_text(size = 12, angle = 0))
-  }
-  sig_legend_name = 'Signatures'
-  if(all(df_final$name %like% '^SBS')) {
-    sig_legend_name = 'Signatures (COSMIC SBS)'
-  }
-  if(using_cannataro_colors) {
-    # Use custom palette outlined in Cannataro et al.
-    cannataro_colors = c(
-      "Deamination with age, clock-like (1)" = "gray40",
-      "Unknown, clock-like (5)" = "gray60",
-      "APOBEC (2, 13)" = "#7570b3",
-      "Defective homologous recombination (3)" = "#e7298a",
-      "Tobacco (4, 29)" = "#a6761d",
-      "UV light (7a–d, 38)" = "#e6ab02",
-      "Treatment (11, 31, 32, 35, 86, 87, 90)" = "#1b9e77",
-      "Mutagenic chemical exposure (22, 24, 42, 88)" = "#66a61e",
-      "Alcohol-associated (16)" = "#d95f02",
-      "Non-actionable and unknown signatures" = "black"
-    )
-    gg = gg + scale_fill_manual(name = sig_legend_name, values = cannataro_colors)
-  } else if(is.null(df_final$color)) {
-    gg = gg + scale_fill_viridis_d(name = sig_legend_name, option = viridis_option, begin = .2, direction = -1)
-  } else {
-    df_final[group == other_label, color := other_color]
-    group_to_color = setNames(unique(df_final$color), unique(df_final$group))
-    gg = gg + scale_fill_manual(name = sig_legend_name, values = group_to_color)
-  }
-  
-  gg = gg + guides(fill = guide_legend(reverse=TRUE))
-  return(gg)
-}
-
-plot_signature_attribution <- function(effect_attributed_data, data_source_label) {
-  # Define modified Cannataro signature groupings with additional signatures
-  cannataro_groupings_extended <- list(
-    "Deamination with age, clock-like (1)" = "SBS1",
-    "Unknown, clock-like (5)" = "SBS5", 
-    "APOBEC (2, 13)" = c("SBS2", "SBS13"),
-    "Defective homologous recombination (3)" = "SBS3",
-    "Tobacco (4, 29)" = c("SBS4", "SBS29"),
-    "UV light (7a–d, 38)" = c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS38"),
-    "Treatment (11, 31, 32, 35, 86, 87, 90)" = c("SBS11", "SBS31", "SBS32", "SBS35", "SBS86", "SBS87", "SBS90"),
-    "Mutagenic chemical exposure (22, 24, 42, 88)" = c("SBS22", "SBS24", "SBS42", "SBS88"),
-    "Alcohol-associated (16)" = "SBS16"
-  )
-  
-  cannataro_colors <- c(
-    "Deamination with age, clock-like (1)" = "gray40",
-    "Unknown, clock-like (5)" = "gray60",
-    "APOBEC (2, 13)" = "#7570b3", 
-    "Defective homologous recombination (3)" = "#e7298a",
-    "Tobacco (4, 29)" = "#a6761d",
-    "UV light (7a–d, 38)" = "#e6ab02",
-    "Treatment (11, 31, 32, 35, 86, 87, 90)" = "#1b9e77",
-    "Mutagenic chemical exposure (22, 24, 42, 88)" = "#66a61e",
-    "Alcohol-associated (16)" = "#d95f02",
-    "Non-actionable and unknown signatures" = "black"
-  )
-  
-  
-  stacked_plot <- plot_signature_effects_modified(
-    mutational_effects = effect_attributed_data, 
-    signature_groupings = "cannataro"
-  ) + 
-    ggtitle(paste("Genomic Mutation Source Share vs Cancer Effect Source Share (", data_source_label, ")", sep = ""))
-  
-  # Plot genome mutagenesis attributed to mutational signatures
-  genome_shares <- effect_attributed_data$mutational_sources$average_source_shares
-  # Get column names (SBS signatures)
-  sbs_list <- names(genome_shares)
-  
-  # Extract the part after "SBS" for natural sorting
-  sbs_keys <- sub("SBS", "", sbs_list)
-  
-  # Get sorted order of column names
-  sorted_list <- sbs_list[mixedorder(sbs_keys)]
-  type(sorted_list)
-  
-  genome_shares_sorted <- genome_shares[sorted_list]
-  
-  dt_genome <- data.table(
-    signature = names(genome_shares_sorted),
-    proportion = genome_shares_sorted
-  )
-  
-  # Add group assignment (using extended groupings)
-  dt_genome[, group := {
-    sapply(signature, function(sig) {
-      for (group_name in names(cannataro_groupings_extended)) {
-        if (sig %in% cannataro_groupings_extended[[group_name]]) {
-          return(group_name)
-        }
-      }
-      return("Non-actionable and unknown signatures")
-    })
-  }]
-  # Add order of x-axis (increasing order)
-  dt_genome[, signature := factor(signature, levels = sorted_list)]
-  
-  # Calculate group totals and order by proportion for genome plot
-  genome_group_totals <- dt_genome[, .(total_proportion = sum(proportion)), by = group]
-  genome_group_order <- genome_group_totals[order(-total_proportion), group]
-  
-  # Individual genome signature plot with colors and ordered legend
-  individual_genome_plot <- ggplot(dt_genome, aes(x = signature, y = proportion, fill = group)) +
-    geom_bar(stat = "identity", color = "black", size = 0.3) +
-    scale_fill_manual(values = cannataro_colors, name = "Signature Groups", 
-                      breaks = genome_group_order) +
-    labs(
-      title = paste("Proportion of Genome Mutagenesis Attributed to Each Signature (", data_source_label, ")", sep = ""),
-      x = "Signature",
-      y = "Proportion of Genome Mutagenesis"
-    ) +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  
-  # Plot effect size attributed to mutational signatures  
-  effect_shares <- effect_attributed_data$effect_shares$average_effect_shares
-  
-  # Get column names (SBS signatures)
-  sbs_list <- names(effect_shares)
-  
-  # Extract the part after "SBS" for natural sorting
-  sbs_keys <- sub("SBS", "", sbs_list)
-  
-  # Get sorted order of column names
-  sorted_list <- sbs_list[mixedorder(sbs_keys)]
-  type(sorted_list)
-  
-  effect_shares_sorted <- effect_shares[sorted_list]
-  
-  dt_effect <- data.table(
-    signature = names(effect_shares_sorted),
-    proportion = effect_shares_sorted
-  )
-  
-  # Add group assignment
-  dt_effect[, group := {
-    sapply(signature, function(sig) {
-      for (group_name in names(cannataro_groupings_extended)) {
-        if (sig %in% cannataro_groupings_extended[[group_name]]) {
-          return(group_name)
-        }
-      }
-      return("Non-actionable and unknown signatures")
-    })
-  }]
-  # Add order of x-axis (increasing order)
-  dt_effect[, signature := factor(signature, levels = sorted_list)]
-  
-  # Calculate group totals and order by proportion for effect plot
-  effect_group_totals <- dt_effect[, .(total_proportion = sum(proportion)), by = group]
-  effect_group_order <- effect_group_totals[order(-total_proportion), group]
-  
-  # Individual effect signature plot with colors and ordered legend
-  individual_effect_plot <- ggplot(dt_effect, aes(x = signature, y = proportion, fill = group)) +
-    geom_bar(stat = "identity", color = "black", size = 0.3) +
-    scale_fill_manual(values = cannataro_colors, name = "Signature Groups",
-                      breaks = effect_group_order) +
-    labs(
-      title = paste("Proportion of Effect Size Attributed to Each Signature (", data_source_label, ")", sep = ""),
-      x = "Signature", 
-      y = "Proportion of Effect Size"
-    ) +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  
-  # Return plots for further use if needed
-  return(list(
-    stacked_plot = stacked_plot,
-    individual_genome_plot = individual_genome_plot,
-    individual_effect_plot = individual_effect_plot
-  ))
-}
-create_diverging_signature_plot <- function(Li_data, ref_based_data) {
-  
-  font <- 11
-  scale <- 7.25
-  
-  # LEFT SIDE: Signature groupings for shared signatures
-  left_signature_groupings <- list(
-    "Unknown, clock-like (5)" = "SBS5",
-    "APOBEC (13)" = c("SBS13"),
-    "Tobacco (4)" = c("SBS4")
-  )
-  left_other_label <- "Non-actionable and unknown"
-  
-  # LEFT SIDE: Cannataro colors
-  left_cannataro_colors <- c(
-    "Unknown, clock-like (5)" = "gray60",
-    "APOBEC (13)" = "#7570b3",
-    "Tobacco (4)" = "#a6761d",
-    "Non-actionable and unknown" = "black"
-  )
-  
-  # RIGHT SIDE: Signature groupings for ref_based only signatures
-  right_signature_groupings <- list(
-    "Deamination, clock-like (1)" = "SBS1",
-    "APOBEC (2)" = c("SBS2"),
-    "Defective homologous recombination (3)" = "SBS3",
-    "Tobacco (29)" = c("SBS29"),
-    "UV light (7a–d, 38)" = c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS38"),
-    "Treatment (31, 32, 35, 86, 87)" = c("SBS11", "SBS31", "SBS32", "SBS35", "SBS86", "SBS87", "SBS90"),
-    "Mutagenic chemical exposure (24)" = c("SBS22", "SBS24", "SBS42", "SBS88"),
-    "Alcohol-associated (16)" = "SBS16"
-  )
-  right_other_label <- "Non-actionable and unknown"
-  
-  # RIGHT SIDE: Cannataro colors
-  right_cannataro_colors <- c(
-    "Deamination, clock-like (1)" = "gray40",
-    "APOBEC (2)" = "#7570b3",
-    "Defective homologous recombination (3)" = "#e7298a",
-    "Tobacco (29)" = "#a6761d",
-    "UV light (7a–d, 38)" = "#e6ab02",
-    "Treatment (31, 32, 35, 86, 87)" = "#1b9e77",
-    "Mutagenic chemical exposure (24)" = "#66a61e",
-    "Alcohol-associated (16)" = "#d95f02",
-    "Non-actionable and unknown" = "black"
-  )
-  
-  # Process Li_data (genome mutagenesis share)
-  Li_data_dt <- as.data.table(Li_data)
-  mean_Li_data <- Li_data_dt[, sapply(.SD, mean), .SDcols = names(Li_data_dt)[-c(1)]]
-  df_Li <- data.table(type = 'Li_results', prop = mean_Li_data, name = names(mean_Li_data))
-  
-  # Process ref_based_data (genome mutagenesis share)
-  ref_based_dt <- as.data.table(ref_based_data)
-  not_zero <- ref_based_dt[, (sapply(.SD, function(x) any(x != 0))), .SDcols = names(ref_based_dt)[-c(1:4)]]
-  not_zero <- names(which(not_zero == TRUE))
-  signature_weights <- ref_based_dt[, c("Unique_Patient_Identifier", ..not_zero)]
-  signature_names <- names(signature_weights)[-c(1)]
-  mean_signature_weights <- signature_weights[, sapply(.SD, mean), .SDcols = signature_names]
-  df_ref <- data.table(type = 'ref_based', prop = mean_signature_weights, name = names(mean_signature_weights))
-  
-  # Combine data
-  df_final <- rbind(df_Li, df_ref)
-  
-  # Determine which signatures are in both datasets vs only in ref_based
-  li_signatures <- unique(df_Li$name)
-  ref_signatures <- unique(df_ref$name)
-  shared_signatures <- intersect(li_signatures, ref_signatures)
-  ref_only_signatures <- setdiff(ref_signatures, li_signatures)
-  
-  # LEFT PANEL: Shared signatures (both Li_results and ref_based)
-  left_dt <- df_final[name %in% shared_signatures]
-  
-  # Add signature groupings to other signatures for LEFT panel
-  left_other_signatures <- setdiff(left_dt$name, unlist(left_signature_groupings))
-  left_signature_groupings[[left_other_label]] <- left_other_signatures
-  
-  # Unwind list to get a table matching signatures to their labels for LEFT panel
-  left_signature_labels <- rbindlist(lapply(1:length(left_signature_groupings), 
-                                            function(x) data.table(name = left_signature_groupings[[x]], 
-                                                                   label = names(left_signature_groupings)[x])))
-  
-  # Create group column and assign signature_groupings for LEFT panel
-  left_dt[left_signature_labels, group := label, on = 'name']
-  # Assign any unmatched signatures to the "other" category
-  left_dt[is.na(group), group := left_other_label]
-  
-  # Order signature groups by mean effect share for LEFT panel
-  left_summed_shares <- left_dt[type == 'ref_based' & group != left_other_label, .(summed_share = sum(prop)), by = 'group']
-  left_mean_share_order <- left_summed_shares[order(summed_share), group]
-  left_final_order <- c(left_other_label, left_mean_share_order)
-  left_dt$group <- factor(left_dt$group, levels = left_final_order)
-  
-  left_dt[, type := factor(type, levels = c("Li_results", "ref_based"))]
-  
-  p_left <- ggplot(data = left_dt) +
-    geom_col(
-      mapping = aes(
-        x = prop,
-        y = type,
-        fill = group#,
-        #weight = prop
-      ),
-      position = position_stack(reverse=FALSE),
-      width = .8,
-      color = 'black'
-    ) + labs(x="Proportion of TMB", y="") +
-    scale_x_continuous(
-      limits = c(0, 1),
-      breaks = seq(0, 1, by = 0.25),
-      labels = function(x) format(abs(x), nsmall = 2),
-      expand = c(0, 0)
-    ) +
-    scale_x_reverse() +
-    theme_bw(base_size = font) +
-    theme(
-      axis.title.x = element_text(color = "black", size = 12, face= "plain"),
-      axis.title = element_blank(),
-      axis.text.y = element_blank(),
-      axis.ticks.y = element_blank(),
-      axis.text.x = element_text(size = 12),
-      panel.grid = element_blank(),
-      legend.position = "none",
-      plot.margin = margin(0, 2, 2, 12)
-    )
-  
-  # RIGHT PANEL: ref_based only signatures
-  right_dt <- df_final[name %in% ref_only_signatures]
-  
-  # Add signature groupings to other signatures for RIGHT panel
-  right_other_signatures <- setdiff(right_dt$name, unlist(right_signature_groupings))
-  right_signature_groupings[[right_other_label]] <- right_other_signatures
-  
-  # Unwind list to get a table matching signatures to their labels for RIGHT panel
-  right_signature_labels <- rbindlist(lapply(1:length(right_signature_groupings), 
-                                             function(x) data.table(name = right_signature_groupings[[x]], 
-                                                                    label = names(right_signature_groupings)[x])))
-  
-  # Add zero entries for Li_results to maintain structure
-  if(nrow(right_dt) > 0) {
-    zero_entries <- data.table(
-      type = 'Li_results',
-      prop = 0,
-      name = unique(right_dt$name)
-    )
-    right_dt_extended <- rbind(right_dt, zero_entries)
-    right_dt_extended[, type := factor(type, levels = c("Li_results", "ref_based"))]
-    
-    # Create group column and assign signature_groupings for RIGHT panel
-    right_dt_extended[right_signature_labels, group := label, on = 'name']
-    # Assign any unmatched signatures to the "other" category
-    right_dt_extended[is.na(group), group := right_other_label]
-    
-    # Order signature groups by mean effect share for RIGHT panel
-    right_summed_shares <- right_dt_extended[type == 'ref_based' & group != right_other_label, .(summed_share = sum(prop)), by = 'group']
-    right_mean_share_order <- right_summed_shares[order(summed_share), group]
-    right_final_order <- c(right_other_label, right_mean_share_order)
-    right_dt_extended$group <- factor(right_dt_extended$group, levels = right_final_order)
-  } else {
-    right_dt_extended <- data.table(type = character(), prop = numeric(), name = character(), group = character())
-  }
-  
-  p_right <- ggplot(data = right_dt_extended) +
-    geom_col(
-      mapping = aes(
-        x = prop,
-        y = type,
-        fill = group),
-      position = position_stack(reverse = FALSE),
-      width = .8,
-      color = 'black'
-    ) + labs(x="Proportion of TMB", y="") +
-    scale_x_continuous(
-      limits = c(0, 1),
-      breaks = seq(0, 1, by = 0.25),
-      labels = function(x) format(abs(x), nsmall = 2),
-      expand = c(0, 0)
-    ) +
-    theme_bw(base_size = font) +
-    theme(
-      axis.title = element_blank(),
-      axis.title.x = element_text(color = "black", size = 12, face="plain"),
-      axis.text.y = element_blank(),
-      axis.ticks.y = element_blank(),
-      axis.text.x = element_text(size = 12),
-      panel.grid = element_blank(),
-      legend.position = "none",
-      plot.margin = margin(0, 12, 2, 2)
-    )
-  
-  # MIDDLE PANEL: type labels
-label_dt <- data.table(type = c(0, 0.7), label = c("Li et al.", "Reference\nbased"))
-  
-  p_middle <- ggplot(label_dt) +
-    geom_text(aes(x = 0, y = type, label = label),
-              size = 12 / 2.8, 
-              fontface = "plain", 
-              hjust = 0.5) +
-    scale_x_continuous(limits = c(-0.5, 0.5)) +
-    scale_y_continuous(limits = c(-1, 1)) +  # Add y scale to allow positioning
-    theme_void() +
-    theme(
-      # plot.margin = margin(5, 2, 5, 2),
-      plot.margin = margin(0, 0, 0, 0),
-      panel.background = element_blank(),
-      plot.background = element_blank()
-    )
-  
-  # Set legend name
-  sig_legend_name <- ''
-  
-  # Order groups for left panel legend
-  if(nrow(left_dt) > 0) {
-    left_group_totals <- left_dt[, .(total_proportion = sum(prop)), by = group]
-    left_group_order <- left_group_totals[order(-total_proportion), group]
-  } else {
-    left_group_order <- unique(left_dt$group)
-  }
-  
-  # Order groups for right panel legend
-  if(nrow(right_dt_extended) > 0) {
-    right_group_totals <- right_dt_extended[, .(total_proportion = sum(prop)), by = group]
-    right_group_order <- right_group_totals[order(-total_proportion), group]
-  } else {
-    right_group_order <- unique(right_dt_extended$group)
-  }
-  
-  # Apply legend styling to left plot
-  p_left <- p_left +
-    scale_fill_manual(name = sig_legend_name, values = left_cannataro_colors,
-                      breaks = left_final_order) +
-    guides(fill = guide_legend(reverse = TRUE, nrow = 2, byrow = TRUE)) +
-    theme(legend.position = "bottom", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
-
-  # Apply legend styling to right plot
-  p_right <- p_right +
-    scale_fill_manual(name = sig_legend_name, values = right_cannataro_colors,
-                      breaks = right_final_order) +
-    guides(fill = guide_legend(reverse = TRUE, nrow = 4, byrow = TRUE)) +
-    theme(legend.position = "bottom", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
-  # https://github.com/wilkelab/cowplot/issues/202#issuecomment-2550098822
-  get_legend2 <- function(plot, legend = NULL) {
-    gt <- ggplotGrob(plot)
-    pattern <- "guide-box"
-    if (!is.null(legend)) {
-      pattern <- paste0(pattern, "-", legend)
-    }
-    indices <- grep(pattern, gt$layout$name)
-    not_empty <- !vapply(
-      gt$grobs[indices], 
-      inherits, what = "zeroGrob", 
-      FUN.VALUE = logical(1)
-    )
-    indices <- indices[not_empty]
-    if (length(indices) > 0) {
-      return(gt$grobs[[indices[1]]])
-    }
-    return(NULL)
-  }
-  legend_left <- get_legend2(p_left, legend = "bottom")
-  legend_right <- get_legend2(p_right, legend = "bottom")
-  panel_1 <- plot_grid(legend_left, legend_right, nrow = 1, ncol = 2, rel_widths = c(4, 5))
-  p_right <- p_right + theme(legend.position = "none")
-  p_left <- p_left + theme(legend.position = "none")
-  # #combine with plot_grid
-  panel_2<- plot_grid(p_left, p_middle, p_right, ncol =3, nrow = 1, rel_widths = c(4.2,1,4.2))
-  combined_plots <- plot_grid(panel_1, panel_2, nrow=2, ncol=1, rel_heights = c(7,12))
-
-  return(combined_plots)
-}
-
-analyze_signature_with_covariate <- function(signature_name, dataset, biological_weight_table, survival_data, covariate_information) {
-  
-  # Create signature groups (keeping original logic)
-  signature_Low <- survival_data[survival_data$Unique_Patient_Identifier %in% biological_weight_table[biological_weight_table[[signature_name]] < 0.05, ]$Unique_Patient_Identifier, ]
-  
-  signature_group_1 <- survival_data[survival_data$Unique_Patient_Identifier %in% biological_weight_table[biological_weight_table[[signature_name]] >= 0.05 & biological_weight_table[[signature_name]] < 0.25, ]$Unique_Patient_Identifier, ]
-  
-  signature_group_2 <- survival_data[survival_data$Unique_Patient_Identifier %in% biological_weight_table[biological_weight_table[[signature_name]] >= 0.25 & biological_weight_table[[signature_name]] <= 1, ]$Unique_Patient_Identifier, ]
-  
-  signature_High <- bind_rows(signature_group_1, signature_group_2)
-  
-  # Add signature status to each data set
-  signature_High$signature_status <- "High"
-  signature_Low$signature_status <- "Low"
-  
-  # Combine them
-  signature_survival_data <- bind_rows(signature_High, signature_Low)
-  
-  # Remove rows with missing covariate information (NA values)
-  signature_survival_data <- signature_survival_data[!is.na(signature_survival_data[[covariate_information]]), ]
-  
-  # Check if we have any data left after removing NAs
-  if (nrow(signature_survival_data) == 0) {
-    print(paste("No samples available after removing NA values for", covariate_information))
-    return(NULL)
-  }
-  
-  # Get unique values of the covariate (excluding NA)
-  covariate_values <- unique(signature_survival_data[[covariate_information]])
-  covariate_values <- covariate_values[!is.na(covariate_values)]
-  covariate_values <- covariate_values[order(covariate_values)] # Sort for consistency
-  
-  # Create combined grouping variable for 4 groups
-  signature_survival_data$combined_group <- paste(signature_survival_data$signature_status, 
-                                                  signature_survival_data[[covariate_information]], 
-                                                  sep = "_")
-  
-  # Check for subgroups with insufficient sample sizes and print warnings
-  all_possible_groups <- c()
-  for (sig_status in c("Low", "High")) {
-    for (cov_val in covariate_values) {
-      group_name <- paste(sig_status, cov_val, sep = "_")
-      all_possible_groups <- c(all_possible_groups, group_name)
-      
-      group_count <- sum(signature_survival_data$combined_group == group_name)
-      if (group_count == 0) {
-        print(paste("Warning: No samples in subgroup", signature_name, sig_status, covariate_information, cov_val))
-      } else if (group_count < 3) {
-        print(paste("Warning: Sample size not greater than 3 in subgroup", signature_name, sig_status, covariate_information, cov_val, "(n =", group_count, ")"))
-      }
-    }
-  }
-  
-  # Filter out groups with sample size < 3
-  signature_survival_data <- signature_survival_data[signature_survival_data$combined_group %in% names(table(signature_survival_data$combined_group)[table(signature_survival_data$combined_group) >= 3]), ]
-  
-  # Check if we have enough groups for analysis
-  if (length(unique(signature_survival_data$combined_group)) < 2) {
-    print("Not enough groups with samples for survival analysis")
-    return(NULL)
-  }
-  
-  # Create group counts for the table
-  group_counts <- table(signature_survival_data$combined_group)
-  
-  # Create simplified legend labels (without sample sizes)
-  legend_labels <- c()
-  colors <- c()
-  color_map <- list()
-  
-  # Define color scheme
-  if (covariate_information == "chemo") {
-    # For chemo: "no" = high opacity, "yes" = lower opacity
-    color_map[["Low_no"]] <- "red"
-    color_map[["Low_yes"]] <- "#FF7F7F"
-    color_map[["High_no"]] <- "blue" 
-    color_map[["High_yes"]] <- "#7F7FFF"
-  } else if (covariate_information == "sclc_treatment") {
-    # For sclc_treatment: FALSE = high opacity, TRUE = lower opacity
-    color_map[["Low_FALSE"]] <- "red"
-    color_map[["Low_TRUE"]] <- "#FF7F7F"
-    color_map[["High_FALSE"]] <- "blue"
-    color_map[["High_TRUE"]] <- "#7F7FFF"
-  } else {
-    # Generic color scheme for other covariates
-    base_colors <- c("red", "blue")
-    opacity_levels <- c("", "7F")
-    idx <- 1
-    for (sig_status in c("Low", "High")) {
-      base_color <- base_colors[ifelse(sig_status == "Low", 1, 2)]
-      for (i in seq_along(covariate_values)) {
-        group_name <- paste(sig_status, covariate_values[i], sep = "_")
-        if (i == 1) {
-          color_map[[group_name]] <- base_color
-        } else {
-          color_map[[group_name]] <- paste0("#", substr(base_color, 2, 7), opacity_levels[2])
-        }
-      }
-    }
-  }
-  
-  # Create legend labels and colors for existing groups
-  for (group_name in names(group_counts)) {
-    parts <- strsplit(group_name, "_")[[1]]
-    sig_status <- parts[1]
-    cov_val <- paste(parts[-1], collapse = "_")
-    
-    legend_labels <- c(legend_labels, paste(signature_name, sig_status, covariate_information, cov_val))
-    colors <- c(colors, color_map[[group_name]])
-  }
-  
-  # Create plot title
-  plot_title <- paste("Kaplan-Meier Curve:", signature_name, "by", covariate_information, paste0("(", dataset, " data)"))
-  
-  # Fit the Kaplan-Meier model
-  fit <- survfit(Surv(time = overall_survival_months, event = status_numeric) ~ combined_group, data = signature_survival_data)
-  
-  # Create the plot
-  res <- ggsurvplot(
-    fit,
-    data = signature_survival_data,
-    xlim = c(0, 160), 
-    break.x.by = 40,
-    ylab = "Survival Probability",
-    xlab = "Overall Survival (Months)",
-    pval = FALSE,  # We'll add custom p-values
-    conf.int = FALSE,
-    risk.table = TRUE,
-    risk.table.height = 0.25,
-    legend.labs = legend_labels,
-    palette = colors,
-    title = plot_title,
-    tables.y.text = FALSE, 
-    ggtheme = theme_bw()
-  )
-  
-  # Calculate all p-values
-  p_values <- list()
-  
-  # P-value for High group (comparing covariate values within signature High)
-  pos_data <- signature_survival_data[signature_survival_data$signature_status == "High", ]
-  if (nrow(pos_data) > 0 && length(unique(pos_data[[covariate_information]])) > 1) {
-    tryCatch({
-      pos_diff <- survdiff(Surv(time = overall_survival_months, event = status_numeric) ~ get(covariate_information), data = pos_data)
-      pos_pval <- 1 - pchisq(pos_diff$chisq, length(pos_diff$n) - 1)
-      p_values$within_High <- signif(pos_pval, 2)
-    }, error = function(e) {
-      p_values$within_High <- NA
-    })
-  } else {
-    p_values$within_High <- NA
-  }
-  
-  # P-value for Low group (comparing covariate values within signature Low)
-  neg_data <- signature_survival_data[signature_survival_data$signature_status == "Low", ]
-  if (nrow(neg_data) > 0 && length(unique(neg_data[[covariate_information]])) > 1) {
-    tryCatch({
-      neg_diff <- survdiff(Surv(time = overall_survival_months, event = status_numeric) ~ get(covariate_information), data = neg_data)
-      neg_pval <- 1 - pchisq(neg_diff$chisq, length(neg_diff$n) - 1)
-      p_values$within_Low <- signif(neg_pval, 2)
-    }, error = function(e) {
-      p_values$within_Low <- NA
-    })
-  } else {
-    p_values$within_Low <- NA
-  }
-  
-  # P-value between signature groups for each covariate value
-  for (cov_val in covariate_values) {
-    cov_data <- signature_survival_data[signature_survival_data[[covariate_information]] == cov_val, ]
-    if (nrow(cov_data) > 0 && length(unique(cov_data$signature_status)) > 1) {
-      tryCatch({
-        cov_diff <- survdiff(Surv(time = overall_survival_months, event = status_numeric) ~ signature_status, data = cov_data)
-        cov_pval <- 1 - pchisq(cov_diff$chisq, length(cov_diff$n) - 1)
-        p_values[[paste0("between_", cov_val)]] <- signif(cov_pval, 2)
-      }, error = function(e) {
-        p_values[[paste0("between_", cov_val)]] <- NA
-      })
-    } else {
-      p_values[[paste0("between_", cov_val)]] <- NA
-    }
-  }
-  
-  # Remove risk table axis labels and title
-  res$table <- res$table +
-    labs(x = NULL, y = NULL) +
-    theme(
-      axis.title.x = element_blank(),
-      axis.title.y = element_blank(),
-      plot.title = element_blank()
-    )
-  
-  # Create summary table 
-  summary_table <- data.frame(
-    Signature_Status = character(),
-    Covariate = character(),
-    Sample_Size = numeric(),
-    P_Value_Within_Signatures = character(),
-    P_Value_Between_Signatures = character(),
-    stringsAsFactors = FALSE
-  )
-  
-  # Add rows for each existing group
-  for (group_name in names(group_counts)) {
-    parts <- strsplit(group_name, "_")[[1]]
-    sig_status <- parts[1]
-    cov_val <- paste(parts[-1], collapse = "_")
-    
-    # Determine within-signature p-value
-    within_pval <- ""
-    if (sig_status == "High" && !is.na(p_values$within_High)) {
-      within_pval <- paste("P =", p_values$within_High)
-    } else if (sig_status == "Low" && !is.na(p_values$within_Low)) {
-      within_pval <- paste("P =", p_values$within_Low)
-    }
-    
-    # Determine between-signature p-value for this covariate value
-    between_pval <- ""
-    pval_key <- paste0("between_", cov_val)
-    if (!is.na(p_values[[pval_key]])) {
-      between_pval <- paste("P =", p_values[[pval_key]])
-    }
-    
-    summary_table <- rbind(summary_table, data.frame(
-      Signature_Status = paste(signature_name, sig_status),
-      Covariate = paste(cov_val, covariate_information),
-      Sample_Size = as.numeric(group_counts[group_name]),
-      P_Value_Within_Signatures = within_pval,
-      P_Value_Between_Signatures = between_pval,
-      stringsAsFactors = FALSE
-    ))
-  }
-  
-  # Return in the specified order
-  return(list(res, summary_table))
-}
-
 analyze_signature <- function(signature_name, dataset, biological_weight_table, survival_data, cutoff = NULL, SBS4_cutoff = SBS4_survival_optimal_cutoff_paper_mean, SBS13_cutoff = SBS13_survival_optimal_cutoff_paper_mean) {
   
   # Define styling constants
@@ -1965,6 +1045,7 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
   
   return(results)
 }
+
 analyze_signature_complete <- function(signature_name, datasets = c("external", "paper", "all"), cutoff = NULL) {
   
   results <- list()
@@ -2012,6 +1093,277 @@ analyze_signature_complete <- function(signature_name, datasets = c("external", 
   
   return(results)
 }
+
+create_diverging_signature_plot <- function(Li_data, ref_based_data) {
+  
+  font <- 11
+  scale <- 7.25
+  
+  # LEFT SIDE: Signature groupings for shared signatures
+  left_signature_groupings <- list(
+    "Unknown, clock-like (5)" = "SBS5",
+    "APOBEC (13)" = c("SBS13"),
+    "Tobacco (4)" = c("SBS4")
+  )
+  left_other_label <- "Non-actionable and unknown"
+  
+  # LEFT SIDE: Cannataro colors
+  left_cannataro_colors <- c(
+    "Unknown, clock-like (5)" = "gray60",
+    "APOBEC (13)" = "#7570b3",
+    "Tobacco (4)" = "#a6761d",
+    "Non-actionable and unknown" = "black"
+  )
+  
+  # RIGHT SIDE: Signature groupings for ref_based only signatures
+  right_signature_groupings <- list(
+    "Deamination, clock-like (1)" = "SBS1",
+    "APOBEC (2)" = c("SBS2"),
+    "Defective homologous recombination (3)" = "SBS3",
+    "Tobacco (29)" = c("SBS29"),
+    "UV light (7a–d, 38)" = c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS38"),
+    "Treatment (31, 32, 35, 86, 87)" = c("SBS11", "SBS31", "SBS32", "SBS35", "SBS86", "SBS87", "SBS90"),
+    "Mutagenic chemical exposure (24)" = c("SBS22", "SBS24", "SBS42", "SBS88"),
+    "Alcohol-associated (16)" = "SBS16"
+  )
+  right_other_label <- "Non-actionable and unknown"
+  
+  # RIGHT SIDE: Cannataro colors
+  right_cannataro_colors <- c(
+    "Deamination, clock-like (1)" = "gray40",
+    "APOBEC (2)" = "#7570b3",
+    "Defective homologous recombination (3)" = "#e7298a",
+    "Tobacco (29)" = "#a6761d",
+    "UV light (7a–d, 38)" = "#e6ab02",
+    "Treatment (31, 32, 35, 86, 87)" = "#1b9e77",
+    "Mutagenic chemical exposure (24)" = "#66a61e",
+    "Alcohol-associated (16)" = "#d95f02",
+    "Non-actionable and unknown" = "black"
+  )
+  
+  # Process Li_data (genome mutagenesis share)
+  Li_data_dt <- as.data.table(Li_data)
+  mean_Li_data <- Li_data_dt[, sapply(.SD, mean), .SDcols = names(Li_data_dt)[-c(1)]]
+  df_Li <- data.table(type = 'Li_results', prop = mean_Li_data, name = names(mean_Li_data))
+  
+  # Process ref_based_data (genome mutagenesis share)
+  ref_based_dt <- as.data.table(ref_based_data)
+  not_zero <- ref_based_dt[, (sapply(.SD, function(x) any(x != 0))), .SDcols = names(ref_based_dt)[-c(1:4)]]
+  not_zero <- names(which(not_zero == TRUE))
+  signature_weights <- ref_based_dt[, c("Unique_Patient_Identifier", ..not_zero)]
+  signature_names <- names(signature_weights)[-c(1)]
+  mean_signature_weights <- signature_weights[, sapply(.SD, mean), .SDcols = signature_names]
+  df_ref <- data.table(type = 'ref_based', prop = mean_signature_weights, name = names(mean_signature_weights))
+  
+  # Combine data
+  df_final <- rbind(df_Li, df_ref)
+  
+  # Determine which signatures are in both datasets vs only in ref_based
+  li_signatures <- unique(df_Li$name)
+  ref_signatures <- unique(df_ref$name)
+  shared_signatures <- intersect(li_signatures, ref_signatures)
+  ref_only_signatures <- setdiff(ref_signatures, li_signatures)
+  
+  # LEFT PANEL: Shared signatures (both Li_results and ref_based)
+  left_dt <- df_final[name %in% shared_signatures]
+  
+  # Add signature groupings to other signatures for LEFT panel
+  left_other_signatures <- setdiff(left_dt$name, unlist(left_signature_groupings))
+  left_signature_groupings[[left_other_label]] <- left_other_signatures
+  
+  # Unwind list to get a table matching signatures to their labels for LEFT panel
+  left_signature_labels <- rbindlist(lapply(1:length(left_signature_groupings), 
+                                            function(x) data.table(name = left_signature_groupings[[x]], 
+                                                                   label = names(left_signature_groupings)[x])))
+  
+  # Create group column and assign signature_groupings for LEFT panel
+  left_dt[left_signature_labels, group := label, on = 'name']
+  # Assign any unmatched signatures to the "other" category
+  left_dt[is.na(group), group := left_other_label]
+  
+  # Order signature groups by mean effect share for LEFT panel
+  left_summed_shares <- left_dt[type == 'ref_based' & group != left_other_label, .(summed_share = sum(prop)), by = 'group']
+  left_mean_share_order <- left_summed_shares[order(summed_share), group]
+  left_final_order <- c(left_other_label, left_mean_share_order)
+  left_dt$group <- factor(left_dt$group, levels = left_final_order)
+  
+  left_dt[, type := factor(type, levels = c("Li_results", "ref_based"))]
+  
+  p_left <- ggplot(data = left_dt) +
+    geom_col(
+      mapping = aes(
+        x = prop,
+        y = type,
+        fill = group#,
+        #weight = prop
+      ),
+      position = position_stack(reverse=FALSE),
+      width = .8,
+      color = 'black'
+    ) + labs(x="Proportion of TMB", y="") +
+    scale_x_reverse(
+      limits = c(1, 0),
+      breaks = seq(0, 1, by = 0.25),
+      labels = function(x) format(abs(x), nsmall = 2),
+      expand = expansion(mult = c(0.05, 0))  # 5% expansion on left (1.00), no expansion on right (0.00)
+    ) +
+    theme_bw(base_size = font) +
+    theme(
+      axis.title = element_blank(),
+      axis.title.x = element_text(color = "black", size = 12, face="plain"),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.text.x = element_text(size = 12),
+      panel.grid = element_blank(),
+      legend.position = "none",
+      plot.margin = margin(0, 0, 2, 0)
+    )
+  
+  # RIGHT PANEL: ref_based only signatures
+  right_dt <- df_final[name %in% ref_only_signatures]
+  
+  # Add signature groupings to other signatures for RIGHT panel
+  right_other_signatures <- setdiff(right_dt$name, unlist(right_signature_groupings))
+  right_signature_groupings[[right_other_label]] <- right_other_signatures
+  
+  # Unwind list to get a table matching signatures to their labels for RIGHT panel
+  right_signature_labels <- rbindlist(lapply(1:length(right_signature_groupings), 
+                                             function(x) data.table(name = right_signature_groupings[[x]], 
+                                                                    label = names(right_signature_groupings)[x])))
+  
+  # Add zero entries for Li_results to maintain structure
+  if(nrow(right_dt) > 0) {
+    zero_entries <- data.table(
+      type = 'Li_results',
+      prop = 0,
+      name = unique(right_dt$name)
+    )
+    right_dt_extended <- rbind(right_dt, zero_entries)
+    right_dt_extended[, type := factor(type, levels = c("Li_results", "ref_based"))]
+    
+    # Create group column and assign signature_groupings for RIGHT panel
+    right_dt_extended[right_signature_labels, group := label, on = 'name']
+    # Assign any unmatched signatures to the "other" category
+    right_dt_extended[is.na(group), group := right_other_label]
+    
+    # Order signature groups by mean effect share for RIGHT panel
+    right_summed_shares <- right_dt_extended[type == 'ref_based' & group != right_other_label, .(summed_share = sum(prop)), by = 'group']
+    right_mean_share_order <- right_summed_shares[order(summed_share), group]
+    right_final_order <- c(right_other_label, right_mean_share_order)
+    right_dt_extended$group <- factor(right_dt_extended$group, levels = right_final_order)
+  } else {
+    right_dt_extended <- data.table(type = character(), prop = numeric(), name = character(), group = character())
+  }
+  
+  p_right <- ggplot(data = right_dt_extended) +
+    geom_col(
+      mapping = aes(
+        x = prop,
+        y = type,
+        fill = group),
+      position = position_stack(reverse = FALSE),
+      width = .8,
+      color = 'black'
+    ) + labs(x="Proportion of TMB", y="") +
+    scale_x_continuous(
+      limits = c(0, 1),
+      breaks = seq(0, 1, by = 0.25),
+      labels = function(x) format(abs(x), nsmall = 2),
+      expand = expansion(mult = c(0, 0.05))
+    ) +
+    theme_bw(base_size = font) +
+    theme(
+      axis.title = element_blank(),
+      axis.title.x = element_text(color = "black", size = 12, face="plain"),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.text.x = element_text(size = 12),
+      panel.grid = element_blank(),
+      legend.position = "none",
+      plot.margin = margin(0, 0, 2, -3)
+    )
+  
+  # LABEL PANEL
+  label_dt <- data.table(type = c(0, 0.7), label = c("De novo\nextraction", "Reference\nbased"))
+  
+  p_label <- ggplot(label_dt) +
+    geom_text(aes(x = 0, y = type, label = label),
+              size = 12 / 2.8, 
+              fontface = "plain", 
+              hjust = 0.5) +
+    scale_x_continuous(limits = c(-0.5, 0.5)) +
+    scale_y_continuous(limits = c(-1, 1)) +  # Add y scale to allow positioning
+    theme_void() +
+    theme(
+      # plot.margin = margin(5, 2, 5, 2),
+      plot.margin = margin(0, 0, 0, 2),
+      panel.background = element_blank(),
+      plot.background = element_blank()
+    )
+  
+  # Set legend name
+  sig_legend_name <- ''
+  
+  # Order groups for left panel legend
+  if(nrow(left_dt) > 0) {
+    left_group_totals <- left_dt[, .(total_proportion = sum(prop)), by = group]
+    left_group_order <- left_group_totals[order(-total_proportion), group]
+  } else {
+    left_group_order <- unique(left_dt$group)
+  }
+  
+  # Order groups for right panel legend
+  if(nrow(right_dt_extended) > 0) {
+    right_group_totals <- right_dt_extended[, .(total_proportion = sum(prop)), by = group]
+    right_group_order <- right_group_totals[order(-total_proportion), group]
+  } else {
+    right_group_order <- unique(right_dt_extended$group)
+  }
+  
+  # Apply legend styling to left plot
+  p_left <- p_left +
+    scale_fill_manual(name = sig_legend_name, values = left_cannataro_colors,
+                      breaks = left_final_order) +
+    guides(fill = guide_legend(reverse = TRUE, nrow = 2, byrow = TRUE)) +
+    theme(legend.position = "bottom", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
+  
+  # Apply legend styling to right plot
+  p_right <- p_right +
+    scale_fill_manual(name = sig_legend_name, values = right_cannataro_colors,
+                      breaks = right_final_order) +
+    guides(fill = guide_legend(reverse = TRUE, nrow = 4, byrow = TRUE)) +
+    theme(legend.position = "bottom", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
+  # https://github.com/wilkelab/cowplot/issues/202#issuecomment-2550098822
+  get_legend2 <- function(plot, legend = NULL) {
+    gt <- ggplotGrob(plot)
+    pattern <- "guide-box"
+    if (!is.null(legend)) {
+      pattern <- paste0(pattern, "-", legend)
+    }
+    indices <- grep(pattern, gt$layout$name)
+    not_empty <- !vapply(
+      gt$grobs[indices], 
+      inherits, what = "zeroGrob", 
+      FUN.VALUE = logical(1)
+    )
+    indices <- indices[not_empty]
+    if (length(indices) > 0) {
+      return(gt$grobs[[indices[1]]])
+    }
+    return(NULL)
+  }
+  legend_left <- get_legend2(p_left, legend = "bottom")
+  legend_right <- get_legend2(p_right, legend = "bottom")
+  panel_1 <- plot_grid(NULL, legend_left, legend_right, nrow = 1, ncol = 3, rel_widths = c(0.75, 3.5, 4.8))
+  p_right <- p_right + theme(legend.position = "none")
+  p_left <- p_left + theme(legend.position = "none")
+  # #combine with plot_grid
+  panel_2<- plot_grid(p_label, p_left, p_right, NULL, ncol =4, nrow = 1, rel_widths = c(1.2,4.2,4.2,1.2))
+  combined_plots <- plot_grid(panel_1, panel_2, nrow=2, ncol=1, rel_heights = c(7,12))
+  
+  return(combined_plots)
+}
+
 # ----------------Gene Level Analysis ------------------------
 
 # Define known gene classifications (Specified by COSMIC or OncoKB) for compound variant analysis
