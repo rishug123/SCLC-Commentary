@@ -9,7 +9,7 @@ Fig1g <- SBS13_optimal + ggtitle(NULL) + theme(legend.position = "none", legend.
 Fig1b <- paper_TMB_linreg_SBS4 + ggtitle(NULL) + theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2)) 
 Fig1c <- paper_TMB_linreg_SBS13 + ggtitle(NULL) + theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2)) 
 
-Fig1_p1 <- plot_grid(NULL, Fig1a, nrow = 2, ncol = 1, labels = c("a", ""), rel_heights = c(1, 20))
+Fig1_p1 <- plot_grid(Fig1a, nrow = 1, ncol = 1, labels = "a")
 Fig1_p2 <- plot_grid(Fig1b, Fig1c, Fig1d, Fig1e, Fig1f, Fig1g, nrow=3, ncol=2, labels = c("b", "c", "d", "e", "f", "g"))
 
 Fig1 <- plot_grid (Fig1_p1, Fig1_p2, nrow=2, ncol = 1, rel_heights = c(1,2))
