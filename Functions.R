@@ -1284,13 +1284,13 @@ create_diverging_signature_plot <- function(Li_data, ref_based_data) {
     )
   
   # LABEL PANEL
-  label_dt <- data.table(type = c(0, 0.7), label = c("De novo\nextraction", "Reference\nbased"))
+  label_dt <- data.table(type = c(0, 0.7), label = c("atop(italic('De novo'), plain('extraction'))", "atop(plain('Reference'), plain('based'))"))
   
   p_label <- ggplot(label_dt) +
     geom_text(aes(x = 0, y = type, label = label),
               size = 12 / 2.8, 
               fontface = "plain", 
-              hjust = 0.5) +
+              hjust = 0.5, parse = TRUE) +
     scale_x_continuous(limits = c(-0.5, 0.5)) +
     scale_y_continuous(limits = c(-1, 1)) +  # Add y scale to allow positioning
     theme_void() +
