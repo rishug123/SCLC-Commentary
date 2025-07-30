@@ -147,7 +147,13 @@ SBS13_0.25_cutoff_survival_paper_signatures <- sig_result_SBS13$plot_0.25 # Li e
 
 # Mutational Signature Analysis
 
-diverging_plot_sig_comparison <- create_diverging_signature_plot(Li_data = paper_signatures, ref_based_data = biological_weights_paper)
+# diverging_plot_sig_comparison <- create_diverging_signature_plot(Li_data = paper_signatures, ref_based_data = biological_weights_paper)
+
+WES_samples <- cesa_paper$samples[coverage != "targeted", Unique_Patient_Identifier]
+effect_weights_paper <- signature_attribution_paper$effect_shares$by_sample[
+  Unique_Patient_Identifier %in% WES_samples
+]
+diverging_plot_sig_comparison <- create_diverging_signature_plot_with_cancer_effect(Li_data = paper_signatures, ref_based_data = biological_weights_paper, effect_data = effect_weights_paper)
 # diverging_plot_sig_comparison
 
 ##--------------- ANALYSIS FOR CESA_ALL (all data)-----

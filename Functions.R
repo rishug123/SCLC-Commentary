@@ -837,7 +837,7 @@ plot_TMB_logistic_regression <- function(biological_weights_table, dataset, sign
     )
     
     # R² string — needs proper plotmath syntax
-    r2_string <- paste0("R^2 == ", r2_val)
+    r2_string <- paste0("italic(R)^2 == ", r2_val)
     
     # P-value string — format in scientific notation with plotmath style
     if (p_val > 0.01){
@@ -955,8 +955,8 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
       data = data,
       xlim = c(0, 80),
       break.x.by = 20,
-      ylab = "Survival probability",
-      xlab = "Overall survival (months)",
+      ylab = "Overall survival",
+      xlab = "Time (months)",
       pval = FALSE,
       risk.table = TRUE,
       risk.table.height = 0.20,

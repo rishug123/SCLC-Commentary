@@ -5,17 +5,17 @@ setwd("..") # the location the r script will save
 
 # Create cesa object that will include external data 
 cesa_external <- CESAnalysis(refset = "ces.refset.hg19")
-# save_cesa(cesa_external, "cesa_external.rds")
+save_cesa(cesa_external, "cesa_external.rds")
 # cesa_external <- readRDS("cesa_external.rds")
 
 # Create cesa object that will include only data in the paper
 cesa_paper <- CESAnalysis(refset = "ces.refset.hg19")
-# save_cesa(cesa_paper, "cesa_paper_new.rds")
+save_cesa(cesa_paper, "cesa_paper_new.rds")
 # cesa_paper <- readRDS("cesa_paper.rds")
 
 # Create cesa object that will include all data
 cesa_all <- CESAnalysis(refset = "ces.refset.hg19")
-# save_cesa(cesa_all, "cesa_all.rds")
+save_cesa(cesa_all, "cesa_all.rds")
 # cesa_all <- readRDS("cesa_all.rds")
 
 # Check for duplicate data

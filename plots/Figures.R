@@ -1,8 +1,8 @@
-setwd("plots") # the location the r script will save
+# setwd("plots") # the location the r script will save
 
 # Fig 1
 Fig1a <- diverging_plot_sig_comparison
-Fig1d <- SBS4_0.25 + ggtitle(NULL) + theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2)) 
+Fig1d <- SBS4_0.25 +  theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2)) + ggtitle(NULL)
 Fig1f <- SBS4_optimal + ggtitle(NULL) + theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2))
 Fig1e <- SBS13_0.25 + ggtitle(NULL) + theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2))
 Fig1g <- SBS13_optimal + ggtitle(NULL) + theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2))
@@ -12,9 +12,9 @@ Fig1c <- paper_TMB_linreg_SBS13 + ggtitle(NULL) + theme(legend.position = "none"
 Fig1_p1 <- plot_grid(Fig1a, nrow = 1, ncol = 1, labels = "a")
 Fig1_p2 <- plot_grid(Fig1b, Fig1c, Fig1d, Fig1e, Fig1f, Fig1g, nrow=3, ncol=2, labels = c("b", "c", "d", "e", "f", "g"))
 
-Fig1 <- plot_grid (Fig1_p1, Fig1_p2, nrow=2, ncol = 1, rel_heights = c(1,2))
+Fig1 <- plot_grid (Fig1_p1, Fig1_p2, nrow=2, ncol = 1, rel_heights = c(1,1.5))
 Fig1 <- Fig1 + theme(plot.background = element_rect(fill = "white", color = "white"))
-ggsave("figure_1.png", plot = Fig1, width = 7, height = 9)
+ggsave("figure_1.png", plot = Fig1, width = 7, height = 10)
 
 # Fig 2
 
