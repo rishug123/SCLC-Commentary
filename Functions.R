@@ -1364,6 +1364,440 @@ create_diverging_signature_plot <- function(Li_data, ref_based_data) {
   return(combined_plots)
 }
 
+
+create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_based_data, effect_data) {
+  
+  font <- 11
+  scale <- 7.25
+  
+  # LEFT SIDE: Signature groupings for shared signatures
+  left_signature_groupings <- list(
+    "Unknown, clock-like (5)" = "SBS5",
+    "APOBEC (13)" = c("SBS13"),
+    "Tobacco (4)" = c("SBS4")
+  )
+  left_other_label <- "Non-actionable and unknown"
+  
+  # LEFT SIDE: Cannataro colors
+  left_cannataro_colors <- c(
+    "Unknown, clock-like (5)" = "gray60",
+    "APOBEC (13)" = "#7570b3",
+    "Tobacco (4)" = "#a6761d",
+    "Non-actionable and unknown" = "black"
+  )
+  
+  # RIGHT SIDE: Signature groupings for ref_based only signatures
+  right_signature_groupings <- list(
+    "Deamination, clock-like (1)" = "SBS1",
+    "APOBEC (2)" = c("SBS2"),
+    "Defective homologous recombination (3)" = "SBS3",
+    "Tobacco (29)" = c("SBS29"),
+    "UV light (7a–d, 38)" = c("SBS7a", "SBS7b", "SBS7c", "SBS7d", "SBS38"),
+    "Treatment (31, 32, 35, 86, 87)" = c("SBS11", "SBS31", "SBS32", "SBS35", "SBS86", "SBS87", "SBS90"),
+    "Mutagenic chemical exposure (24)" = c("SBS22", "SBS24", "SBS42", "SBS88"),
+    "Alcohol-associated (16)" = "SBS16"
+  )
+  right_other_label <- "Non-actionable and unknown"
+  
+  # RIGHT SIDE: Cannataro colors
+  right_cannataro_colors <- c(
+    "Deamination, clock-like (1)" = "gray40",
+    "APOBEC (2)" = "#7570b3",
+    "Defective homologous recombination (3)" = "#e7298a",
+    "Tobacco (29)" = "#a6761d",
+    "UV light (7a–d, 38)" = "#e6ab02",
+    "Treatment (31, 32, 35, 86, 87)" = "#1b9e77",
+    "Mutagenic chemical exposure (24)" = "#66a61e",
+    "Alcohol-associated (16)" = "#d95f02",
+    "Non-actionable and unknown" = "black"
+  )
+  
+  # Process Li_data (genome mutagenesis share)
+  Li_data_dt <- as.data.table(Li_data)
+  mean_Li_data <- Li_data_dt[, sapply(.SD, mean), .SDcols = names(Li_data_dt)[-c(1)]]
+  df_Li <- data.table(type = 'Li_results', prop = mean_Li_data, name = names(mean_Li_data))
+  
+  # Process ref_based_data (genome mutagenesis share)
+  ref_based_dt <- as.data.table(ref_based_data)
+  not_zero <- ref_based_dt[, (sapply(.SD, function(x) any(x != 0))), .SDcols = names(ref_based_dt)[-c(1:4)]]
+  not_zero <- names(which(not_zero == TRUE))
+  signature_weights <- ref_based_dt[, c("Unique_Patient_Identifier", ..not_zero)]
+  signature_names <- names(signature_weights)[-c(1)]
+  mean_signature_weights <- signature_weights[, sapply(.SD, mean), .SDcols = signature_names]
+  df_ref <- data.table(type = 'ref_based', prop = mean_signature_weights, name = names(mean_signature_weights))
+  
+  # Combine data
+  df_final <- rbind(df_ref, df_Li)
+  
+  # Determine which signatures are in both datasets vs only in ref_based
+  li_signatures <- unique(df_Li$name)
+  ref_signatures <- unique(df_ref$name)
+  shared_signatures <- intersect(li_signatures, ref_signatures)
+  ref_only_signatures <- setdiff(ref_signatures, li_signatures)
+  
+  # LEFT PANEL: Shared signatures (both Li_results and ref_based)
+  left_dt <- df_final[name %in% shared_signatures]
+  
+  # Add signature groupings to other signatures for LEFT panel
+  left_other_signatures <- setdiff(left_dt$name, unlist(left_signature_groupings))
+  left_signature_groupings[[left_other_label]] <- left_other_signatures
+  
+  # Unwind list to get a table matching signatures to their labels for LEFT panel
+  left_signature_labels <- rbindlist(lapply(1:length(left_signature_groupings), 
+                                            function(x) data.table(name = left_signature_groupings[[x]], 
+                                                                   label = names(left_signature_groupings)[x])))
+  
+  # Create group column and assign signature_groupings for LEFT panel
+  left_dt[left_signature_labels, group := label, on = 'name']
+  # Assign any unmatched signatures to the "other" category
+  left_dt[is.na(group), group := left_other_label]
+  
+  # Order signature groups by mean effect share for LEFT panel
+  left_summed_shares <- left_dt[type == 'ref_based' & group != left_other_label, .(summed_share = sum(prop)), by = 'group']
+  left_mean_share_order <- left_summed_shares[order(summed_share), group]
+  left_final_order <- c(left_other_label, left_mean_share_order)
+  left_dt$group <- factor(left_dt$group, levels = left_final_order)
+  
+  left_dt[, type := factor(type, levels = c("ref_based", "Li_results"))]
+  
+  p_left <- ggplot(data = left_dt) +
+    geom_col(
+      mapping = aes(
+        x = prop,
+        y = type,
+        fill = group#,
+        #weight = prop
+      ),
+      position = position_stack(reverse=FALSE),
+      width = .8,
+      color = 'black'
+    ) + labs(x="Proportion of TMB", y="") +
+    scale_x_reverse(
+      limits = c(1, 0),
+      breaks = seq(0, 1, by = 0.25),
+      labels = function(x) format(abs(x), nsmall = 2),
+      expand = expansion(mult = c(0.05, 0))  # 5% expansion on left (1.00), no expansion on right (0.00)
+    ) +
+    theme_bw(base_size = font) +
+    theme(
+      axis.title = element_blank(),
+      axis.title.x = element_text(color = "black", size = 12, face="plain"),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.text.x = element_text(size = 12),
+      panel.grid = element_blank(),
+      legend.position = "none",
+      plot.margin = margin(0, 0, 2, 0)
+    )
+  
+  # RIGHT PANEL: ref_based only signatures
+  right_dt <- df_final[name %in% ref_only_signatures]
+  
+  # Add signature groupings to other signatures for RIGHT panel
+  right_other_signatures <- setdiff(right_dt$name, unlist(right_signature_groupings))
+  right_signature_groupings[[right_other_label]] <- right_other_signatures
+  
+  # Unwind list to get a table matching signatures to their labels for RIGHT panel
+  right_signature_labels <- rbindlist(lapply(1:length(right_signature_groupings), 
+                                             function(x) data.table(name = right_signature_groupings[[x]], 
+                                                                    label = names(right_signature_groupings)[x])))
+  
+  # Add zero entries for Li_results to maintain structure
+  if(nrow(right_dt) > 0) {
+    zero_entries <- data.table(
+      type = 'Li_results',
+      prop = 0,
+      name = unique(right_dt$name)
+    )
+    right_dt_extended <- rbind(right_dt, zero_entries)
+    right_dt_extended[, type := factor(type, levels = c("ref_based", "Li_results"))]
+    
+    # Create group column and assign signature_groupings for RIGHT panel
+    right_dt_extended[right_signature_labels, group := label, on = 'name']
+    # Assign any unmatched signatures to the "other" category
+    right_dt_extended[is.na(group), group := right_other_label]
+    
+    # Order signature groups by mean effect share for RIGHT panel
+    right_summed_shares <- right_dt_extended[type == 'ref_based' & group != right_other_label, .(summed_share = sum(prop)), by = 'group']
+    right_mean_share_order <- right_summed_shares[order(summed_share), group]
+    right_final_order <- c(right_other_label, right_mean_share_order)
+    right_dt_extended$group <- factor(right_dt_extended$group, levels = right_final_order)
+  } else {
+    right_dt_extended <- data.table(type = character(), prop = numeric(), name = character(), group = character())
+  }
+  
+  p_right <- ggplot(data = right_dt_extended) +
+    geom_col(
+      mapping = aes(
+        x = prop,
+        y = type,
+        fill = group),
+      position = position_stack(reverse = FALSE),
+      width = .8,
+      color = 'black'
+    ) + labs(x="Proportion of TMB", y="") +
+    scale_x_continuous(
+      limits = c(0, 1),
+      breaks = seq(0, 1, by = 0.25),
+      labels = function(x) format(abs(x), nsmall = 2),
+      expand = expansion(mult = c(0, 0.05))
+    ) +
+    theme_bw(base_size = font) +
+    theme(
+      axis.title = element_blank(),
+      axis.title.x = element_text(color = "black", size = 12, face="plain"),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.text.x = element_text(size = 12),
+      panel.grid = element_blank(),
+      legend.position = "none",
+      plot.margin = margin(0, 0, 2, -3)
+    )
+  
+  # LABEL PANEL
+  label_dt <- data.table(type = c(0, 0.7), label = c("atop(plain('Reference'), plain('based'))", "atop(italic('De novo'), plain('extraction'))"))
+  
+  p_label <- ggplot(label_dt) +
+    geom_text(aes(x = 0, y = type, label = label),
+              size = 12 / 2.8, 
+              fontface = "plain", 
+              hjust = 0.5, parse = TRUE) +
+    scale_x_continuous(limits = c(-0.5, 0.5)) +
+    scale_y_continuous(limits = c(-1, 1)) +  # Add y scale to allow positioning
+    theme_void() +
+    theme(
+      # plot.margin = margin(5, 2, 5, 2),
+      plot.margin = margin(0, 0, 0, 2),
+      panel.background = element_blank(),
+      plot.background = element_blank()
+    )
+  
+  # Set legend name
+  sig_legend_name <- ''
+  
+  # Order groups for left panel legend
+  if(nrow(left_dt) > 0) {
+    left_group_totals <- left_dt[, .(total_proportion = sum(prop)), by = group]
+    left_group_order <- left_group_totals[order(-total_proportion), group]
+  } else {
+    left_group_order <- unique(left_dt$group)
+  }
+  
+  # Order groups for right panel legend
+  if(nrow(right_dt_extended) > 0) {
+    right_group_totals <- right_dt_extended[, .(total_proportion = sum(prop)), by = group]
+    right_group_order <- right_group_totals[order(-total_proportion), group]
+  } else {
+    right_group_order <- unique(right_dt_extended$group)
+  }
+  
+  # Apply legend styling to left plot
+  p_left <- p_left +
+    scale_fill_manual(name = sig_legend_name, values = left_cannataro_colors,
+                      breaks = left_final_order) +
+    guides(fill = guide_legend(reverse = TRUE, nrow = 2, byrow = TRUE)) +
+    theme(legend.position = "bottom", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
+  
+  # Apply legend styling to right plot
+  p_right <- p_right +
+    scale_fill_manual(name = sig_legend_name, values = right_cannataro_colors,
+                      breaks = right_final_order) +
+    guides(fill = guide_legend(reverse = TRUE, nrow = 4, byrow = TRUE)) +
+    theme(legend.position = "bottom", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
+  # https://github.com/wilkelab/cowplot/issues/202#issuecomment-2550098822
+  get_legend2 <- function(plot, legend = NULL) {
+    gt <- ggplotGrob(plot)
+    pattern <- "guide-box"
+    if (!is.null(legend)) {
+      pattern <- paste0(pattern, "-", legend)
+    }
+    indices <- grep(pattern, gt$layout$name)
+    not_empty <- !vapply(
+      gt$grobs[indices], 
+      inherits, what = "zeroGrob", 
+      FUN.VALUE = logical(1)
+    )
+    indices <- indices[not_empty]
+    if (length(indices) > 0) {
+      return(gt$grobs[[indices[1]]])
+    }
+    return(NULL)
+  }
+  legend_left <- get_legend2(p_left, legend = "bottom")
+  legend_right <- get_legend2(p_right, legend = "bottom")
+  panel_1 <- plot_grid(NULL, legend_left, legend_right, nrow = 1, ncol = 3, rel_widths = c(0.75, 3.5, 4.8))
+  p_right <- p_right + theme(legend.position = "none")
+  p_left <- p_left + theme(legend.position = "none")
+  # #combine with plot_grid
+  panel_2<- plot_grid(p_label, p_left, p_right, NULL, ncol =4, nrow = 1, rel_widths = c(1.2,4.2,4.2,1.2))
+  
+  # Process effect_data (effect share)
+  effect_dt <- as.data.table(effect_data)
+  not_zero <- effect_dt[, (sapply(.SD, function(x) any(x != 0))), .SDcols = names(effect_dt)[-c(1:4)]]
+  not_zero <- names(which(not_zero == TRUE))
+  signature_weights <- effect_dt[, c("Unique_Patient_Identifier", ..not_zero)]
+  signature_names <- names(signature_weights)[-c(1)]
+  mean_signature_weights <- signature_weights[, sapply(.SD, mean), .SDcols = signature_names]
+  df_effect <- data.table(type = 'effect', prop = mean_signature_weights, name = names(mean_signature_weights))
+  
+  # LEFT PANEL: 5 identified signatures
+  left_dt <- df_effect[name %in% shared_signatures]
+  
+  # Add signature groupings to other signatures for LEFT panel
+  left_other_signatures <- setdiff(left_dt$name, unlist(left_signature_groupings))
+  left_signature_groupings[[left_other_label]] <- left_other_signatures
+  
+  # Create group column and assign signature_groupings for LEFT panel
+  left_dt[left_signature_labels, group := label, on = 'name']
+  # Assign any unmatched signatures to the "other" category
+  left_dt[is.na(group), group := left_other_label]
+  
+  # Order signature groups by mean effect share for LEFT panel
+  left_summed_shares <- left_dt[type == 'effect' & group != left_other_label, .(summed_share = sum(prop)), by = 'group']
+  left_mean_share_order <- left_summed_shares[order(summed_share), group]
+  left_final_order <- c(left_other_label, left_mean_share_order)
+  left_dt$group <- factor(left_dt$group, levels = left_final_order)
+  
+  left_dt[, type := factor(type, levels = "effect")]
+  
+  p_left_effect <- ggplot(data = left_dt) +
+    geom_col(
+      mapping = aes(
+        x = prop,
+        y = type,
+        fill = group
+      ),
+      position = position_stack(reverse=FALSE),
+      width = .8,
+      color = 'black'
+    ) + labs(x="Proportion of effect", y="") +
+    scale_x_reverse(
+      limits = c(1, 0),
+      breaks = seq(0, 1, by = 0.25),
+      labels = function(x) format(abs(x), nsmall = 2),
+      expand = expansion(mult = c(0.05, 0))  # 5% expansion on left (1.00), no expansion on right (0.00)
+    ) +
+    theme_bw(base_size = font) +
+    theme(
+      axis.title = element_blank(),
+      axis.title.x = element_text(color = "black", size = 12, face="plain"),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.text.x = element_text(size = 12),
+      panel.grid = element_blank(),
+      legend.position = "none",
+      plot.margin = margin(0, 0, 2, 0)
+    )
+  
+  # RIGHT PANEL: ref_based only signatures for EFFECT data
+  right_dt <- df_effect[name %in% ref_only_signatures]
+  
+  # Add signature groupings to other signatures for RIGHT panel
+  right_other_signatures <- setdiff(right_dt$name, unlist(right_signature_groupings))
+  right_signature_groupings[[right_other_label]] <- right_other_signatures
+  
+  if(nrow(right_dt) > 0) {
+    # Create group column and assign signature_groupings for RIGHT panel
+    right_dt[right_signature_labels, group := label, on = 'name']
+    # Assign any unmatched signatures to the "other" category
+    right_dt[is.na(group), group := right_other_label]
+    
+    # Order signature groups by mean effect share for RIGHT panel
+    right_summed_shares <- right_dt[group != right_other_label, .(summed_share = sum(prop)), by = 'group']
+    right_mean_share_order <- right_summed_shares[order(summed_share), group]
+    right_final_order <- c(right_other_label, right_mean_share_order)
+    right_dt$group <- factor(right_dt$group, levels = right_final_order)
+    
+    right_dt[, type := factor(type, levels = "effect")]
+  } else {
+    right_dt <- data.table(type = character(), prop = numeric(), name = character(), group = character())
+  }
+  
+  p_right_effect <- ggplot(data = right_dt) +
+    geom_col(
+      mapping = aes(
+        x = prop,
+        y = type,
+        fill = group),
+      position = position_stack(reverse = FALSE),
+      width = .8,
+      color = 'black'
+    ) + labs(x="Proportion of effect", y="") +
+    scale_x_continuous(
+      limits = c(0, 1),
+      breaks = seq(0, 1, by = 0.25),
+      labels = function(x) format(abs(x), nsmall = 2),
+      expand = expansion(mult = c(0, 0.05))
+    ) +
+    theme_bw(base_size = font) +
+    theme(
+      axis.title = element_blank(),
+      axis.title.x = element_text(color = "black", size = 12, face="plain"),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.text.x = element_text(size = 12),
+      panel.grid = element_blank(),
+      legend.position = "none",
+      plot.margin = margin(0, 0, 2, -3)
+    )
+  
+  # LABEL PANEL for effect
+  label_dt_effect <- data.table(type = 0.4, label = "atop(plain('Reference'), plain('based'))")
+  
+  p_label_effect <- ggplot(label_dt_effect) +
+    geom_text(aes(x = 0, y = type, label = label),
+              size = 12 / 2.8, 
+              fontface = "plain", 
+              hjust = 0.5, parse = TRUE) +  # Added parse = TRUE for atop()
+    scale_x_continuous(limits = c(-0.5, 0.5)) +
+    scale_y_continuous(limits = c(-1, 1)) +
+    theme_void() +
+    theme(
+      plot.margin = margin(0, 0, 0, 2),
+      panel.background = element_blank(),
+      plot.background = element_blank()
+    )
+  
+  # Set legend name
+  sig_legend_name <- ''
+  
+  # Order groups for left panel legend
+  if(nrow(left_dt) > 0) {
+    left_group_totals <- left_dt[, .(total_proportion = sum(prop)), by = group]
+    left_group_order <- left_group_totals[order(-total_proportion), group]
+  } else {
+    left_group_order <- unique(left_dt$group)
+  }
+  
+  # Order groups for right panel legend
+  if(nrow(right_dt_extended) > 0) {
+    right_group_totals <- right_dt_extended[, .(total_proportion = sum(prop)), by = group]
+    right_group_order <- right_group_totals[order(-total_proportion), group]
+  } else {
+    right_group_order <- unique(right_dt_extended$group)
+  }
+  
+  # Apply legend styling to left plot
+  p_left_effect <- p_left_effect +
+    scale_fill_manual(name = sig_legend_name, values = left_cannataro_colors,
+                      breaks = left_final_order) +
+    guides(fill = guide_legend(reverse = TRUE, nrow = 2, byrow = TRUE)) +
+    theme(legend.position = "none", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
+  
+  # Apply legend styling to right plot
+  p_right_effect <- p_right_effect +
+    scale_fill_manual(name = sig_legend_name, values = right_cannataro_colors,
+                      breaks = right_final_order) +
+    guides(fill = guide_legend(reverse = TRUE, nrow = 4, byrow = TRUE)) +
+    theme(legend.position = "none", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
+  
+  panel_3<- plot_grid(p_label_effect, p_left_effect, p_right_effect, NULL, ncol =4, nrow = 1, rel_widths = c(1.2,4.2,4.2,1.2))
+  
+  combined_plots <- plot_grid(panel_1, panel_2, panel_3, nrow=3, ncol=1, rel_heights = c(7,12, 7))
+  
+  return(combined_plots)
+}
+
 # ----------------Gene Level Analysis ------------------------
 
 # Define known gene classifications (Specified by COSMIC or OncoKB) for compound variant analysis
