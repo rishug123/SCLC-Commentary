@@ -24,6 +24,9 @@ library(gtools)
 library(scales)
 library(grid)
 library(gridExtra)
+library(contsurvplot)
+library(pammtools)
+library(riskRegression)
 
 
 maf_format <- c("Hugo_Symbol", "Chromosome", "Start_Position", "End_Position", "Reference_Allele", "Variant_Classification", "Tumor_Sample_Barcode")
