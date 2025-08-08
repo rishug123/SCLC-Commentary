@@ -805,7 +805,8 @@ plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label) {
   
   return(base_plot)
 }
-plot_TMB_logistic_regression <- function(biological_weights_table, dataset, signature, cutoff_SBS4 = SBS4_survival_optimal_cutoff_paper_mean, cutoff_SBS13 = SBS13_survival_optimal_cutoff_paper_mean) {
+
+plot_TMB_linear_regression <- function(biological_weights_table, dataset, signature, cutoff_SBS4 = SBS4_survival_optimal_cutoff_paper_mean, cutoff_SBS13 = SBS13_survival_optimal_cutoff_paper_mean) {
   
   font <- 12 # Master font size
   num_digits_after_decimal <- 2
@@ -822,7 +823,8 @@ plot_TMB_logistic_regression <- function(biological_weights_table, dataset, sign
   table <- make_table(signature)
   
   # Plot builder
-  build_plot <- function(data, sig_name, color, cutoff = NA) {
+  build_plot <- function(data, sig_name, color, cutoff = NA, xmax = 0.8){
+    
     model <- lm(log10_TMB ~ Proportion_Signature, data = data)
     coefs <- coef(model)
     summary_lm <- summary(model)
@@ -836,82 +838,68 @@ plot_TMB_logistic_regression <- function(biological_weights_table, dataset, sign
       abs(signif(coefs[2], num_digits_after_decimal)), " * italic(x)"
     )
     
-    # R² string — needs proper plotmath syntax
+    # R² string
     r2_string <- paste0("italic(R)^2 == ", r2_val)
     
-    # P-value string — format in scientific notation with plotmath style
+    # P-value string
     if (p_val > 0.01){
       p_label <- paste0("italic(P) == ", signif(p_val, num_digits_after_decimal))
     } else{
       p_value <- gsub("e(-?\\d+)", " %*% 10^{\\1}", formatC(p_val, format = "e", digits = num_digits_after_decimal))
       p_label <- paste0("italic(P) == ", p_value)
     }
-   
     
-    signature_label <- unique(data$Signature)
-    
-    p <- ggplot(data, aes(x = Proportion_Signature, y = log10_TMB, color = Signature)) +
-      geom_point() +
-      geom_smooth(method = "lm", se = FALSE) +
-      { if (!is.na(cutoff)) geom_vline(xintercept = cutoff, linetype = "dashed", linewidth = 1, color = color) else NULL } +
-      scale_color_manual(values = setNames(color, signature_label)) +
-      xlim(0, 0.8) + 
+    ggplot(data, aes(x = Proportion_Signature, y = log10_TMB)) +
+      geom_point(size = 1.5, color = color) +
+      geom_smooth(method = "lm", se = FALSE, color = color, size = 0.5) +
       scale_y_continuous(
         trans = "log10",
         limits = c(10^0, 10^3),
         breaks = 10^(1:3),
         labels = trans_format("log10", math_format(10^.x))
       ) +
-      annotate("text", x = 0.8, y = 10^1, label = eqn_string, parse = TRUE,
+      xlim(0, xmax) +
+      labs(x = paste0(sig_name, " signature activity"), y = "TMB") +
+      annotate("text", x = xmax, y = 10^1, label = eqn_string, parse = TRUE,
                hjust = 1.05, vjust = 0, size = font / 4, color = color) +
-      
-      annotate("text", x = 0.8, y = 10^0.6, label = r2_string, parse = TRUE,
+      annotate("text", x = xmax, y = 10^0.6, label = r2_string, parse = TRUE,
                hjust = 1.05, vjust = 0, size = font / 4, color = color) +
-      
-      annotate("text", x = 0.8, y = 10^0.2, label = p_label, parse = TRUE,
-               hjust = 1.05, vjust = 0, size = font / 4, color = color)+
-     
-      labs(
-        x = paste0(sig_name, " signature activity"),
-        y = "TMB",
-        title = paste0("Linear regression of TMB vs proportion attributed to ", sig_name, " (", dataset, " data)"),
-        color = NULL
-      ) +
-      theme_bw() +
+      annotate("text", x = xmax, y = 10^0.2, label = p_label, parse = TRUE,
+               hjust = 1.05, vjust = 0, size = font / 4, color = color) +
+      theme_bw(base_size = font) +
       theme(
-        plot.title = element_text(size = font, face = "bold", hjust = 0.5),
+        # panel.grid.minor = element_blank(),
+        # panel.grid.major = element_blank(),
+        axis.text = element_text(size = font * 0.8),
         axis.title = element_text(size = font),
-        axis.text = element_text(size = font),
-        legend.text = element_text(size = font),
-        legend.position = "top",
-        plot.margin = margin(t = 1, r = 1, b = 1, l = 1)
-      )
-    
-    return(p)
-  }
+        plot.title = element_blank()
+      ) #   + { if (!is.na(cutoff)) geom_vline(xintercept = cutoff, linetype = "dashed", color = color) else NULL } 
+    }
   
-  # Return list of plots
-  if (signature == "SBS4"){
-    plot  <- build_plot(table,  "SBS4",  "#a6761d", cutoff_SBS4)
-  }
-  if (signature == "SBS13"){
-    plot <- build_plot(table, "SBS13", "#7570b3", cutoff_SBS13)
-  }
-  if (signature == "SBS5"){
-    plot  <- build_plot(table,  "SBS5",  "#999999")
-  }
-  if (signature == "SBS87"){
-    plot  <- build_plot(table,  "SBS87",  "#1b9e77")
-  }
-  if (signature == "SBS3"){
-    plot  <- build_plot(table,  "SBS3",  "#e7298a")
-  }
-  if (signature == "SBS24"){
-    plot  <- build_plot(table,  "SBS24",  "#66a61e")
-  }
+  # Pick xmax dynamically
+  xmax <- if (signature == "SBS13") 0.4 else 0.8
   
+  # Call builder
+  color_map <- list(
+    SBS4  = "#a6761d",
+    SBS13 = "#7570b3",
+    SBS5  = "#999999",
+    SBS87 = "#1b9e77",
+    SBS3  = "#e7298a",
+    SBS24 = "#66a61e"
+  )
+  
+  cutoff <- switch(signature,
+                   SBS4 = cutoff_SBS4,
+                   SBS13 = cutoff_SBS13,
+                   NA)
+  
+  color <- color_map[[signature]]
+  
+  plot <- build_plot(table, signature, color, cutoff = cutoff, xmax = xmax)
   return(plot)
-}              
+}
+
 
 analyze_signature <- function(signature_name, dataset, biological_weight_table, survival_data, cutoff = NULL, SBS4_cutoff = SBS4_survival_optimal_cutoff_paper_mean, SBS13_cutoff = SBS13_survival_optimal_cutoff_paper_mean) {
   
@@ -1046,6 +1034,54 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
   return(results)
 }
 
+analyze_signature_continuous <- function(signature_name, biological_weight_table, survival_data) {
+  
+  font <- 12
+  font_legend <- 9
+  risk_table_number_size <- font / 2.5
+  
+  dt <- merge(survival_data, biological_weight_table, by = "Unique_Patient_Identifier")
+  
+  if (!signature_name %in% colnames(dt)) {
+    stop(paste("Column", signature_name, "not found in merged data"))
+  }
+  
+  formula_str <- reformulate(signature_name, "Surv(overall_survival_months, status_numeric)")
+  model <- coxph(formula_str, data = dt, x = TRUE)
+  
+  create_survival_plot_continuous <- plot_surv_area(
+    time = "overall_survival_months",
+    status = "status_numeric",
+    variable = signature_name,
+    data = dt,
+    model = model,
+    discrete = FALSE,
+    start_color = "red",
+    end_color = "blue",
+    xlab = "Time (months)",
+    ylab = "Overall survival",
+    label_digits = 2,
+    legend.title = element_blank(),  # uncomment for no legend title
+    # legend.title = paste0(signature_name, " signature activity")
+  ) +
+    theme_bw() +
+    theme(
+      plot.title = element_blank(),
+      axis.title.x = element_text(size = font, face = "plain", color = "black"),
+      axis.title.y = element_text(size = font, face = "plain", color = "black"),
+      axis.text.x = element_text(size = font, face = "plain", color = "black"),
+      axis.text.y = element_text(size = font, face = "plain", color = "black"),
+      legend.text = element_text(size = font_legend, color = "black"),
+      legend.position = "top",
+      legend.key.height = unit(0.3, "cm")
+    ) +
+    scale_x_continuous(limits = c(0, 80), breaks = seq(0, 80, 20)) +
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25))
+  
+  
+  return(list(model_continuous = model, plot_continuous = create_survival_plot_continuous))
+}
+
 analyze_signature_complete <- function(signature_name, datasets = c("external", "paper", "all"), cutoff = NULL) {
   
   results <- list()
@@ -1072,16 +1108,24 @@ analyze_signature_complete <- function(signature_name, datasets = c("external", 
     surv_data <- dataset_config[[dataset]]$survival_data
     
     tryCatch({
-      # Basic signature analysis - now returns both plots in a named list
-      sig_result <- analyze_signature(
+      sig_result_binary <- analyze_signature(
         signature_name = signature_name, 
         dataset = dataset, 
         biological_weight_table = sig_analysis, 
-        survival_data = surv_data, cutoff = cutoff
+        survival_data = surv_data, 
+        cutoff = cutoff
       )
       
-      # Store the result in the results list
-      results[[dataset]] <- sig_result
+      sig_result_continuous <- analyze_signature_continuous(
+        signature_name = signature_name, 
+        biological_weight_table = sig_analysis,
+        survival_data = surv_data
+      )
+      
+      results[[dataset]] <- list(
+        binary = sig_result_binary,
+        continuous = sig_result_continuous
+      )
       
       cat(paste("Successfully analyzed", signature_name, "for", dataset, "dataset\n"))
       
