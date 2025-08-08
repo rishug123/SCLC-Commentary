@@ -1,11 +1,8 @@
-setwd("/Users/rishabhgarg/Documents/R Directories/CancerEffectSizeR/SCLC-Commentary")
-setwd("files")
-
 # Import external required packages
 library(BiocManager)
 library(cancereffectsizeR)
 library(data.table)
-library("tidyverse")
+library(tidyverse)
 library(dplyr)
 library(readr)
 library(maftools)
@@ -28,6 +25,7 @@ library(contsurvplot)
 library(pammtools)
 library(riskRegression)
 
+setwd("files")
 
 maf_format <- c("Hugo_Symbol", "Chromosome", "Start_Position", "End_Position", "Reference_Allele", "Variant_Classification", "Tumor_Sample_Barcode")
 
@@ -72,7 +70,7 @@ setnames(george_et_al_clinical, old = "stage_UICC", new = "staging", skip_absent
 
 
 george_et_al_clinical <- george_et_al_clinical[
-  george_et_al_clinical$Unique_Patient_Identifier %in% unique(george_et_al_maf$Unique_Patient_Identifier), ]
+  george_et_al_clinical$Unique_Patient_Identifier %in% unique(george_et_al_maf$patient_id), ]
 
 george_et_al_clinical <- george_et_al_clinical %>%
   mutate(
@@ -301,7 +299,7 @@ jiang_et_al_clinical <- jiang_et_al_clinical %>%
   )
 
 jiang_et_al_clinical <- jiang_et_al_clinical %>%
-  filter(Unique_Patient_Identifier %in% unique(jiang_et_al_maf$Unique_Patient_Identifier))
+  filter(Unique_Patient_Identifier %in% unique(jiang_et_al_maf$patient_id))
 
 
 ## Zhou et al., 2021 (Nature)
