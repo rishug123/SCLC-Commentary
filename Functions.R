@@ -816,7 +816,7 @@ plot_TMB_linear_regression <- function(biological_weights_table, dataset, signat
     data.table(
       Signature = paste0(sig, " (n=", nrow(biological_weights_table), ")"),
       Proportion_Signature = biological_weights_table[[sig]],
-      log10_TMB = biological_weights_table$total_snvs
+      log10_TMB = log10(biological_weights_table$total_snvs)
     )
   }
   
@@ -853,18 +853,17 @@ plot_TMB_linear_regression <- function(biological_weights_table, dataset, signat
       geom_point(size = 1.5, color = color) +
       geom_smooth(method = "lm", se = FALSE, color = color, size = 0.5) +
       scale_y_continuous(
-        trans = "log10",
-        limits = c(10^0, 10^3),
-        breaks = 10^(1:3),
-        labels = trans_format("log10", math_format(10^.x))
+        limits = c(0, 3),
+        breaks = 0:3,
+        labels = scales::math_format(10^.x)
       ) +
       xlim(0, xmax) +
       labs(x = paste0(sig_name, " signature activity"), y = "TMB") +
-      annotate("text", x = xmax, y = 10^1, label = eqn_string, parse = TRUE,
+      annotate("text", x = xmax, y = 1.0, label = eqn_string, parse = TRUE,
                hjust = 1.05, vjust = 0, size = font / 4, color = color) +
-      annotate("text", x = xmax, y = 10^0.6, label = r2_string, parse = TRUE,
+      annotate("text", x = xmax, y = 0.6, label = r2_string, parse = TRUE,
                hjust = 1.05, vjust = 0, size = font / 4, color = color) +
-      annotate("text", x = xmax, y = 10^0.2, label = p_label, parse = TRUE,
+      annotate("text", x = xmax, y = 0.2, label = p_label, parse = TRUE,
                hjust = 1.05, vjust = 0, size = font / 4, color = color) +
       theme_bw(base_size = font) +
       theme(
