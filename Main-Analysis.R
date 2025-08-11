@@ -46,23 +46,23 @@ cesa_all <- load_sample_data(cesa_all, zhou_et_al_clinical)
 cesa_all <- load_maf(cesa = cesa_all, maf = jiang_et_al_maf, maf_name = "jiang_et_al")
 cesa_all <- load_sample_data(cesa_all, jiang_et_al_clinical)
 
-# load paper targeted data set into the cesa object
-
-  # paper
-
-cesa_paper <- load_maf(cesa_paper, maf = IMPACT468_msk_met_maf, coverage = "targeted", covered_regions = IMPACT468_msk_met_coverage, covered_regions_name = "IMPACT468", maf_name = "msk_met")
-cesa_paper <- load_maf(cesa_paper, maf = IMPACT410_msk_met_maf, coverage = "targeted", covered_regions = IMPACT468_msk_met_coverage, covered_regions_name = "IMPACT410", maf_name = "msk_met")
-cesa_paper <- load_maf(cesa_paper, maf = IMPACT341_msk_met_maf, coverage = "targeted", covered_regions = IMPACT341_msk_met_coverage, covered_regions_name = "IMPACT341", maf_name = "msk_met")
-
-cesa_paper <- load_sample_data(cesa_paper, msk_met_clinical_txt_file)
-
-  # all
-
-cesa_all <- load_maf(cesa_all, maf = IMPACT468_msk_met_maf, coverage = "targeted", covered_regions = IMPACT468_msk_met_coverage, covered_regions_name = "IMPACT468", maf_name = "msk_met")
-cesa_all <- load_maf(cesa_all, maf = IMPACT410_msk_met_maf, coverage = "targeted", covered_regions = IMPACT468_msk_met_coverage, covered_regions_name = "IMPACT410", maf_name = "msk_met")
-cesa_all <- load_maf(cesa_all, maf = IMPACT341_msk_met_maf, coverage = "targeted", covered_regions = IMPACT341_msk_met_coverage, covered_regions_name = "IMPACT341", maf_name = "msk_met")
-
-cesa_all <- load_sample_data(cesa_all, msk_met_clinical_txt_file)
+# # load paper targeted data set into the cesa object
+# 
+#   # paper
+# 
+# cesa_paper <- load_maf(cesa_paper, maf = IMPACT468_msk_met_maf, coverage = "targeted", covered_regions = IMPACT468_msk_met_coverage, covered_regions_name = "IMPACT468", maf_name = "msk_met")
+# cesa_paper <- load_maf(cesa_paper, maf = IMPACT410_msk_met_maf, coverage = "targeted", covered_regions = IMPACT468_msk_met_coverage, covered_regions_name = "IMPACT410", maf_name = "msk_met")
+# cesa_paper <- load_maf(cesa_paper, maf = IMPACT341_msk_met_maf, coverage = "targeted", covered_regions = IMPACT341_msk_met_coverage, covered_regions_name = "IMPACT341", maf_name = "msk_met")
+# 
+# cesa_paper <- load_sample_data(cesa_paper, msk_met_clinical_txt_file)
+# 
+#   # all
+# 
+# cesa_all <- load_maf(cesa_all, maf = IMPACT468_msk_met_maf, coverage = "targeted", covered_regions = IMPACT468_msk_met_coverage, covered_regions_name = "IMPACT468", maf_name = "msk_met")
+# cesa_all <- load_maf(cesa_all, maf = IMPACT410_msk_met_maf, coverage = "targeted", covered_regions = IMPACT468_msk_met_coverage, covered_regions_name = "IMPACT410", maf_name = "msk_met")
+# cesa_all <- load_maf(cesa_all, maf = IMPACT341_msk_met_maf, coverage = "targeted", covered_regions = IMPACT341_msk_met_coverage, covered_regions_name = "IMPACT341", maf_name = "msk_met")
+# 
+# cesa_all <- load_sample_data(cesa_all, msk_met_clinical_txt_file)
 
 # Define the samples used in Li et al., 2025 (Nature)
 genes_identified_in_paper <- c( "KMT2C", "THSD7B", "WDR87", "UNC13A", "SPATA31D1", "SLC4A10", "PKD1L1", "ANKS1B", "LTN1", "RSF1", "CCT8L2", "VPS13D", "USP13", "NAALAD2", "NDST3", "ACACB", "POM121L12", "CEP128", "BNC2", "DNAH10", "NTRK2", "DOK6", "SAGE1", "OR2T27", "ST6GALNAC3", "FMR1", "TBX18", "UGGT2", "FAM47B", "SPRY3", "CECR2", "ADAMTS18", "OR14I1", "GPR126", "SLC5A11", "SEMA5A", "TPH2", "FOLH1", "TP53")
