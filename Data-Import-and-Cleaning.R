@@ -25,7 +25,7 @@ library(contsurvplot)
 library(pammtools)
 library(riskRegression)
 
-setwd("files")
+# setwd("files")
 
 maf_format <- c("Hugo_Symbol", "Chromosome", "Start_Position", "End_Position", "Reference_Allele", "Variant_Classification", "Tumor_Sample_Barcode")
 

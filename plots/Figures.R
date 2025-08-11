@@ -83,13 +83,13 @@ Fig2f <- SBS13_survival_continuous + theme(
   aspect.ratio = 1, plot.margin = margin(0, 10, 0, 10)
 )
 
-panel_a <- plot_grid(Fig2a$plot, Fig2a$table, ncol = 1, align = "v", rel_heights = c(3, 1))
-panel_b <- plot_grid(Fig2b$plot, Fig2b$table, ncol = 1, align = "v", rel_heights = c(3, 1))
-panel_c <- plot_grid(Fig2c$plot, Fig2c$table, ncol = 1, align = "v", rel_heights = c(3, 1))
-panel_d <- plot_grid(Fig2d$plot, Fig2d$table, ncol = 1, align = "v", rel_heights = c(3, 1))
+panel_a <- plot_grid(Fig2a$plot, Fig2a$table, ncol = 1, align = "v", rel_heights = c(3, 1), labels = c("a", ""),  label_y = 0.98)
+panel_b <- plot_grid(Fig2b$plot, Fig2b$table, ncol = 1, align = "v", rel_heights = c(3, 1), labels = c("b", ""),  label_y = 0.98)
+panel_c <- plot_grid(Fig2c$plot, Fig2c$table, ncol = 1, align = "v", rel_heights = c(3, 1), labels = c("c", ""),  label_y = 0.98)
+panel_d <- plot_grid(Fig2d$plot, Fig2d$table, ncol = 1, align = "v", rel_heights = c(3, 1), labels = c("d", ""),  label_y = 0.98)
 
 # Combine all panels into a 2x2 grid with tags A-D
-Fig2 <- plot_grid(panel_a, panel_b, panel_c, panel_d, Fig2e, Fig2f, nrow=3, ncol=2, labels = c("a", "b", "c", "d", "e", "f"), rel_heights = c(1, 1, 0.8)) + theme(plot.background = element_rect(fill = "white", color = "white"))
+Fig2 <- plot_grid(panel_a, panel_b, panel_c, panel_d, Fig2e, Fig2f, nrow=3, ncol=2, labels = c("", "", "", "", "e", "f"), rel_heights = c(1, 1, 0.8)) + theme(plot.background = element_rect(fill = "white", color = "white"),  label_y = 2, vjust = -0.5)
 ggsave("figure_2.png", plot = Fig2, width = 7, height = 12)
 
 
@@ -147,12 +147,12 @@ sfig1d$plot <- sfig1d$plot +
 
 # Stack plot and table for each panel
 
-panel_s1c <- plot_grid(sfig1c$plot, sfig1c$table, ncol = 1, align = "v", rel_heights = c(3, 1))
-panel_s1d <- plot_grid(sfig1d$plot, sfig1d$table, ncol = 1, align = "v", rel_heights = c(3, 1))
+panel_s1c <- plot_grid(sfig1c$plot, sfig1c$table, ncol = 1, align = "v", rel_heights = c(9, 3), labels = c("c", ""),  label_y = 0.96)
+panel_s1d <- plot_grid(sfig1d$plot, sfig1d$table, ncol = 1, align = "v", rel_heights = c(9, 3), labels = c("d", ""),  label_y = 0.96)
 
 # Combine into 2x2 grid with tags
 SuppFig1 <- plot_grid(sfig1a, sfig1b, panel_s1c, panel_s1d, 
-                      nrow = 2, ncol = 2, labels = c("a", "b", "c", "d"), rel_heights = c(2,3)) +
+                      nrow = 2, ncol = 2, labels = c("a", "b"), rel_heights = c(2,3)) +
   theme(plot.background = element_rect(fill = "white", color = "white"))
 
 # Save the figure
@@ -170,7 +170,7 @@ sfig2b <- sbs13_surv_bs_distribution +
   ggtitle(NULL)
 
 SuppFig2 <- plot_grid(sfig2a, sfig2b, 
-                      nrow = 1, ncol = 2, labels = c("a", "b"))+
+                      nrow = 1, ncol = 2, labels = c("a", "b"),  label_y = 0.98)+
   theme(plot.background = element_rect(fill = "white", color = "white"))
 
 ggsave("supp_fig_2.png", plot = SuppFig2, width = 8, height = 3.5)

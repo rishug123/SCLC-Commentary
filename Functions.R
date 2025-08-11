@@ -1676,13 +1676,21 @@ create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_base
   panel_2<- plot_grid(p_label, p_left, p_right, NULL, ncol =4, nrow = 1, rel_widths = c(1.2,4.2,4.2,1.2))
   
   # Process effect_data (effect share)
-  effect_dt <- as.data.table(effect_data)
-  not_zero <- effect_dt[, (sapply(.SD, function(x) any(x != 0))), .SDcols = names(effect_dt)[-c(1:4)]]
-  not_zero <- names(which(not_zero == TRUE))
-  signature_weights <- effect_dt[, c("Unique_Patient_Identifier", ..not_zero)]
-  signature_names <- names(signature_weights)[-c(1)]
-  mean_signature_weights <- signature_weights[, sapply(.SD, mean), .SDcols = signature_names]
-  df_effect <- data.table(type = 'effect', prop = mean_signature_weights, name = names(mean_signature_weights))
+  # Check if effect_data is a named vector (average shares) or data.table/data.frame
+  if(is.vector(effect_data) && !is.null(names(effect_data))) {
+    # effect_data is already the average effect shares vector
+    mean_effect_weights <- effect_data
+    df_effect <- data.table(type = 'effect', prop = mean_effect_weights, name = names(mean_effect_weights))
+  } else {
+    # effect_data is a data.table/data.frame, process as before
+    effect_dt <- as.data.table(effect_data)
+    not_zero <- effect_dt[, (sapply(.SD, function(x) any(x != 0))), .SDcols = names(effect_dt)[-c(1:4)]]
+    not_zero <- names(which(not_zero == TRUE))
+    signature_weights <- effect_dt[, c("Unique_Patient_Identifier", ..not_zero)]
+    signature_names <- names(signature_weights)[-c(1)]
+    mean_effect_weights <- signature_weights[, sapply(.SD, mean), .SDcols = signature_names]
+    df_effect <- data.table(type = 'effect', prop = mean_effect_weights, name = names(mean_effect_weights))
+  }
   
   # LEFT PANEL: 5 identified signatures
   left_dt <- df_effect[name %in% shared_signatures]
@@ -1714,7 +1722,7 @@ create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_base
       position = position_stack(reverse=FALSE),
       width = .8,
       color = 'black'
-    ) + labs(x="Proportion of effect", y="") +
+    ) + labs(x="Proportion of oncogenic effect", y="") +
     scale_x_reverse(
       limits = c(1, 0),
       breaks = seq(0, 1, by = 0.25),
@@ -1766,7 +1774,7 @@ create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_base
       position = position_stack(reverse = FALSE),
       width = .8,
       color = 'black'
-    ) + labs(x="Proportion of effect", y="") +
+    ) + labs(x="Proportion of oncogenic effect", y="") +
     scale_x_continuous(
       limits = c(0, 1),
       breaks = seq(0, 1, by = 0.25),
