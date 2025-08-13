@@ -617,6 +617,8 @@ SBS5_results <- analyze_signature_complete("SBS5")
 SBS4_results <- analyze_signature_complete("SBS4")
 SBS13_results <- analyze_signature_complete("SBS13")
 
+
+
 # Hazard ratios w/ 95% CI
 summary(SBS4_results$paper$binary$hazard_0.25)
 summary(SBS4_results$paper$binary$hazard_optimal)
@@ -630,13 +632,13 @@ summary(SBS13_results$external$binary$hazard_optimal)
 # tested association between signatures with high average proportion of TMB and overall survival
 
 # Significant
-SBS24_results <- analyze_signature_complete("SBS24", cutoff = round(SBS24_paper_optimal_TMB_cutoff_for_paper_non_bs$estimate, digits = 2))
+SBS24_results <- analyze_signature_complete("SBS24")
 summary(SBS24_results$paper$binary$hazard_optimal)
 
 # Not significant
-SBS3_results <- analyze_signature_complete("SBS3", cutoff = round(SBS3_paper_optimal_survival_cutoff_for_paper_non_bs$estimate, digits =2))
-SBS87_results <- analyze_signature_complete("SBS87", cutoff = round(SBS87_paper_optimal_survival_cutoff_for_paper_non_bs$estimate, digits = 2))
-SBS31_results <- analyze_signature_complete("SBS31", cutoff = round(SBS31_paper_optimal_survival_cutoff_for_paper_non_bs$estimate, digits = 2))
+# SBS3_results <- analyze_signature_complete("SBS3", cutoff = round(SBS3_paper_optimal_survival_cutoff_for_paper_non_bs$estimate, digits =2))
+SBS87_results <- analyze_signature_complete("SBS87")
+# SBS31_results <- analyze_signature_complete("SBS31", cutoff = round(SBS31_paper_optimal_survival_cutoff_for_paper_non_bs$estimate, digits = 2))
 
 # Tried just using their signature data but could not replicate the survival findings
 

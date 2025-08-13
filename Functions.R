@@ -1033,7 +1033,7 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
   return(results)
 }
 
-analyze_signature_continuous <- function(signature_name, biological_weight_table, survival_data) {
+analyze_signature_continuous_old <- function(signature_name, biological_weight_table, survival_data) {
   
   font <- 12
   font_legend <- 9
@@ -1081,6 +1081,84 @@ analyze_signature_continuous <- function(signature_name, biological_weight_table
   return(list(model_continuous = model, plot_continuous = create_survival_plot_continuous))
 }
 
+analyze_signature_continuous_sigmoid <- function(signature_name, biological_weight_table, survival_data, min_range = 0.1) {
+  
+  font <- 12
+  font_legend <- 9
+  risk_table_number_size <- font / 2.5
+  
+  # Merge data
+  dt <- merge(survival_data, biological_weight_table, by = "Unique_Patient_Identifier")
+  
+  if (!signature_name %in% colnames(dt)) {
+    stop(paste("Column", signature_name, "not found in merged data"))
+  }
+  
+  x <- dt[[signature_name]]
+  
+  # Calculate parameters
+  m <- median(x, na.rm = TRUE)
+  min_s <- 0.2   # set a minimum scale to avoid extreme sigmoid collapse
+  s <- max(IQR(x, na.rm = TRUE) / (2 * log(3)), min_s)
+  
+  # Apply sigmoid transformation
+  dt[[paste0(signature_name, "_sigmoid")]] <- 1 / (1 + exp(-(x - m) / s))
+  
+  # Check distribution
+  sigmoid_vals <- dt[[paste0(signature_name, "_sigmoid")]]
+  rng <- max(sigmoid_vals, na.rm = TRUE) - min(sigmoid_vals, na.rm = TRUE)
+  if (rng < min_range) {
+    warning("Sigmoid values are very compressed (range < ", min_range, "). Cox model may still have convergence issues.")
+  }
+  
+  # Fit Cox model with transformed covariate
+  formula_str <- reformulate(paste0(signature_name, "_sigmoid"),
+                             "Surv(overall_survival_months, status_numeric)")
+  model <- tryCatch(
+    coxph(formula_str, data = dt, x = TRUE),
+    error = function(e) {
+      warning("Cox model failed to converge: ", e$message)
+      return(NULL)
+    }
+  )
+  
+  # Plot survival curves
+  create_survival_plot_continuous <- plot_surv_area(
+    time = "overall_survival_months",
+    status = "status_numeric",
+    variable = paste0(signature_name, "_sigmoid"),
+    data = dt,
+    model = model,
+    discrete = FALSE,
+    start_color = "red",
+    end_color = "blue",
+    xlab = "Time (months)",
+    ylab = "Overall survival",
+    label_digits = 2,
+    legend.title = element_blank()
+  ) +
+    theme_bw() +
+    theme(
+      plot.title = element_blank(),
+      axis.title.x = element_text(size = font, face = "plain", color = "black"),
+      axis.title.y = element_text(size = font, face = "plain", color = "black"),
+      axis.text.x = element_text(size = font, face = "plain", color = "black"),
+      axis.text.y = element_text(size = font, face = "plain", color = "black"),
+      legend.text = element_text(size = font_legend, color = "black"),
+      legend.position = "top",
+      legend.key.height = unit(0.3, "cm")
+    ) +
+    scale_x_continuous(limits = c(0, 80), breaks = seq(0, 80, 20)) +
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25))
+  
+  return(list(
+    model_continuous = model, 
+    plot_continuous = create_survival_plot_continuous,
+    median_m = m,
+    scale_s = s
+  ))
+}
+
 analyze_signature_complete <- function(signature_name, datasets = c("external", "paper", "all"), cutoff = NULL) {
   
   results <- list()
@@ -1115,7 +1193,7 @@ analyze_signature_complete <- function(signature_name, datasets = c("external", 
         cutoff = cutoff
       )
       
-      sig_result_continuous <- analyze_signature_continuous(
+      sig_result_continuous <- analyze_signature_continuous_sigmoid(
         signature_name = signature_name, 
         biological_weight_table = sig_analysis,
         survival_data = surv_data

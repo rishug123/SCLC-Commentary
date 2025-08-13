@@ -121,7 +121,9 @@ SBS13_0.25_cutoff_paper_signatures <- plot_TMB_binary_boxplot(data_paper_sig, "S
 paper_TMB_linreg_SBS4 <- plot_TMB_linear_regression(biological_weights_paper, "paper", "SBS4")
 paper_TMB_linreg_SBS13 <- plot_TMB_linear_regression(biological_weights_paper, "paper", "SBS13")
 paper_TMB_linreg_SBS5 <- plot_TMB_linear_regression(biological_weights_paper, "paper", "SBS5")
+
 paper_TMB_linreg_SBS24 <- plot_TMB_linear_regression(biological_weights_paper, "paper", "SBS24")
+paper_TMB_linreg_SBS87 <- plot_TMB_linear_regression(biological_weights_paper, "paper", "SBS87")
 
 
 
