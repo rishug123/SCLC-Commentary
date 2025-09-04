@@ -717,7 +717,7 @@ bootstrap_analysis_SBS13_TMB_optimal_cutoff_external <- function(num_bs) {
   return(list(bs_samples, mean(bs_samples)))
 }
 
-plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label) {
+plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label, p_value = TRUE) {
   font <- 12
   num_digits_after_decimal <- 2
   
@@ -738,12 +738,12 @@ plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label) {
   low_count  <- ifelse(low_label %in% names(group_counts), group_counts[low_label], 0)
   
   # Calculate Wilcoxon p-value
-  p_value <- wilcox.test(total_snvs ~ x_group, data = data)$p.value
-  if (p_value > 0.01){
-    p_label <- paste0("italic(P) == ", signif(p_value, num_digits_after_decimal))
+  p_val <- wilcox.test(total_snvs ~ x_group, data = data)$p.val
+  if (p_val > 0.01){
+    p_label <- paste0("italic(P) == ", signif(p_val, num_digits_after_decimal))
   } else{
-    p_value <- gsub("e(-?\\d+)", " %*% 10^{\\1}", formatC(p_value, format = "e", digits = num_digits_after_decimal))
-    p_label <- paste0("italic(P) == ", p_value)
+    p_val <- gsub("e(-?\\d+)", " %*% 10^{\\1}", formatC(p_val, format = "e", digits = num_digits_after_decimal))
+    p_label <- paste0("italic(P) == ", p_val)
   }
   
   # Step 3: Color group labels (keep on one line)
@@ -779,11 +779,6 @@ plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label) {
     ylab("TMB") +
     xlab(paste0(signature_col, " signature status")) +
     
-    # stat_compare_means(
-    #   label = "p.format", size = font / 2.8, method = "wilcox.test", label.x = 0, label.y = 10^1
-    # ) +
-    annotate("text", x = 2, y = 10^0.75, label = p_label, parse = TRUE, size = font / 2.845) +
-    
     theme_bw() +
     theme(
       plot.title = element_text(size = font, face = "bold", color = "black"),
@@ -802,8 +797,49 @@ plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label) {
     guides(color = guide_legend(title = paste0(signature_col, " status\n"),
                                 title.position = "top",
                                 title.hjust = 0.5))
+  if (p_value == TRUE) {
+    base_plot <- base_plot + annotate("text", x = 1.5, y = 10^0.75, label = p_label,
+                                      parse = TRUE, size = font / 2.845) 
+  }
   
   return(base_plot)
+}
+
+compute_TMB_group_summary <- function(data, signature_col, cutoff) {
+  
+  # Create binary groups
+  data <- data %>%
+    mutate(
+      x_group = ifelse(.data[[signature_col]] >= cutoff, "High", "Low")
+    )
+  
+  # Count group sizes
+  group_counts <- table(data$x_group)
+  n_low <- ifelse("Low" %in% names(group_counts), group_counts["Low"], 0)
+  n_high <- ifelse("High" %in% names(group_counts), group_counts["High"], 0)
+  
+  # Wilcoxon test with Hodges-Lehmann estimate
+  wt <- wilcox.test(total_snvs ~ x_group, data = data, conf.int = TRUE, conf.level = 0.95)
+  
+  # Format in scientific notation with 2 significant figures
+  wilcox_p_sci <- formatC(wt$p.value, format = "e", digits = 2)
+  HL_median_sci <- formatC(wt$estimate, format = "e", digits = 2)
+  HL_CI_lower_sci <- formatC(wt$conf.int[1], format = "e", digits = 2)
+  HL_CI_upper_sci <- formatC(wt$conf.int[2], format = "e", digits = 2)
+  
+  # Create summary table
+  summary_table <- tibble(
+    signature = signature_col,
+    cutoff = cutoff,
+    n_low = n_low,
+    n_high = n_high,
+    wilcox_p = wilcox_p_sci,
+    HL_median_diff = HL_median_sci,
+    HL_CI_lower = HL_CI_lower_sci,
+    HL_CI_upper = HL_CI_upper_sci
+  )
+  
+  return(summary_table)
 }
 
 plot_TMB_linear_regression <- function(biological_weights_table, dataset, signature, cutoff_SBS4 = SBS4_survival_optimal_cutoff_paper_mean, cutoff_SBS13 = SBS13_survival_optimal_cutoff_paper_mean) {
@@ -900,7 +936,7 @@ plot_TMB_linear_regression <- function(biological_weights_table, dataset, signat
 }
 
 
-analyze_signature <- function(signature_name, dataset, biological_weight_table, survival_data, cutoff = NULL, SBS4_cutoff = SBS4_survival_optimal_cutoff_paper_mean, SBS13_cutoff = SBS13_survival_optimal_cutoff_paper_mean) {
+analyze_signature <- function(signature_name, dataset, biological_weight_table, survival_data, cutoff = NULL, SBS4_cutoff = SBS4_survival_optimal_cutoff_paper_mean, SBS13_cutoff = SBS13_survival_optimal_cutoff_paper_mean, p_value = TRUE) {
   
   # Define styling constants
   font <- 12
@@ -978,10 +1014,11 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
         axis.title.y = element_text(size = font, face = "plain", color = "black"),
         axis.text.x = element_text(size = font, face = "plain", color = "black"),
         axis.text.y = element_text(size = font, face = "plain", color = "black")
-      ) +
-      annotate("text", x = 10, y = 0.125, label = p_label, parse = TRUE, size = font / 2.833)
-    
-    
+      )
+    if (p_value == TRUE){
+      plot$plot <- plot$plot + annotate("text", x = 20, y = 0.125, label = p_label, parse = TRUE, size = font / 2.833)
+    }
+  
     return(plot)
   }
   
@@ -1033,54 +1070,6 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
   return(results)
 }
 
-analyze_signature_continuous_old <- function(signature_name, biological_weight_table, survival_data) {
-  
-  font <- 12
-  font_legend <- 9
-  risk_table_number_size <- font / 2.5
-  
-  dt <- merge(survival_data, biological_weight_table, by = "Unique_Patient_Identifier")
-  
-  if (!signature_name %in% colnames(dt)) {
-    stop(paste("Column", signature_name, "not found in merged data"))
-  }
-  
-  formula_str <- reformulate(signature_name, "Surv(overall_survival_months, status_numeric)")
-  model <- coxph(formula_str, data = dt, x = TRUE)
-  
-  create_survival_plot_continuous <- plot_surv_area(
-    time = "overall_survival_months",
-    status = "status_numeric",
-    variable = signature_name,
-    data = dt,
-    model = model,
-    discrete = FALSE,
-    start_color = "red",
-    end_color = "blue",
-    xlab = "Time (months)",
-    ylab = "Overall survival",
-    label_digits = 2,
-    legend.title = element_blank(),  # uncomment for no legend title
-    # legend.title = paste0(signature_name, " signature activity")
-  ) +
-    theme_bw() +
-    theme(
-      plot.title = element_blank(),
-      axis.title.x = element_text(size = font, face = "plain", color = "black"),
-      axis.title.y = element_text(size = font, face = "plain", color = "black"),
-      axis.text.x = element_text(size = font, face = "plain", color = "black"),
-      axis.text.y = element_text(size = font, face = "plain", color = "black"),
-      legend.text = element_text(size = font_legend, color = "black"),
-      legend.position = "top",
-      legend.key.height = unit(0.3, "cm")
-    ) +
-    scale_x_continuous(limits = c(0, 80), breaks = seq(0, 80, 20)) +
-    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25))
-  
-  
-  return(list(model_continuous = model, plot_continuous = create_survival_plot_continuous))
-}
-
 analyze_signature_continuous_sigmoid <- function(signature_name, biological_weight_table, survival_data, min_range = 0.1) {
   
   font <- 12
@@ -1098,8 +1087,9 @@ analyze_signature_continuous_sigmoid <- function(signature_name, biological_weig
   
   # Calculate parameters
   m <- median(x, na.rm = TRUE)
-  min_s <- 0.2   # set a minimum scale to avoid extreme sigmoid collapse
+  min_s <- 0.2   
   s <- max(IQR(x, na.rm = TRUE) / (2 * log(3)), min_s)
+  # s <- IQR(x, na.rm = TRUE) / (2 * log(3))
   
   # Apply sigmoid transformation
   dt[[paste0(signature_name, "_sigmoid")]] <- 1 / (1 + exp(-(x - m) / s))
@@ -1158,6 +1148,130 @@ analyze_signature_continuous_sigmoid <- function(signature_name, biological_weig
     scale_s = s
   ))
 }
+
+analyze_signature_continuous <- function(signature_name, biological_weight_table, survival_data, 
+                                         SBS4_switch = 0.35, SBS13_switch = 0.07, 
+                                         SBS4_increment = 0.07, SBS13_increment = 0.03) {
+  
+  # font settings
+  font <- 12
+  font_legend <- 9
+  risk_table_number_size <- font/2.5
+  
+  # Extract signature activities
+  sig_activities <- data.table(
+    Unique_Patient_Identifier = biological_weight_table$Unique_Patient_Identifier, 
+    sig_activity = biological_weight_table[[signature_name]]
+  )
+  
+  # Merge with survival data
+  surv_data <- survival_data[, list(Unique_Patient_Identifier, overall_survival_months, status_numeric)]
+  dt <- merge(sig_activities, surv_data, by = "Unique_Patient_Identifier")
+  
+  # function to create bins dynamically
+  create_data_driven_groups <- function(sig_activities, increment) {
+    max_activity <- max(sig_activities$sig_activity, na.rm = TRUE)
+    max_rounded <- ceiling(max_activity / increment) * increment
+    breaks <- seq(0, max_rounded, by = increment)
+    labels <- paste0(head(breaks, -1), "-", tail(breaks, -1))
+    return(list(breaks = breaks, labels = labels))
+  }
+  
+  # set up grouping based on SBS4 or SBS13
+  if (signature_name == "SBS4") {
+    group_info <- create_data_driven_groups(sig_activities, SBS4_increment)
+    switch_point <- SBS4_switch
+  } else if (signature_name == "SBS13") {
+    group_info <- create_data_driven_groups(sig_activities, SBS13_increment)
+    switch_point <- SBS13_switch
+  } else {
+    stop("Signature name must be either 'SBS4' or 'SBS13'")
+  }
+  
+  # Assign patients to subgroups
+  dt$group_numeric <- cut(
+    dt$sig_activity, 
+    breaks = group_info$breaks, 
+    labels = group_info$labels, 
+    include.lowest = TRUE, 
+    right = FALSE
+  )
+  
+  # helper to build KM plot with subgroup line thickness
+  create_survival_plot <- function(data, title_suffix, legend_title, color_palette = NULL) {
+  
+    surv_fit  <- survfit(Surv(overall_survival_months, status_numeric) ~ group_numeric, data = data)
+    surv_diff <- survdiff(Surv(overall_survival_months, status_numeric) ~ group_numeric, data = data)
+    
+    # subgroup sizes → line thickness
+    group_sizes <- table(data$group_numeric)
+    max_size <- max(group_sizes)
+    min_size <- min(group_sizes)
+    line_sizes <- 0.5 + 2 * (group_sizes - min_size) / (max_size - min_size)
+    names(line_sizes) <- names(group_sizes)
+    
+    if (is.null(color_palette)) {
+      n_groups <- length(group_sizes)
+      color_palette <- rainbow(n_groups)
+    }
+    
+    plot <- ggsurvplot(
+      fit = surv_fit,
+      data = data,
+      xlim = c(0, 80),
+      break.x.by = 20,
+      ylab = "Overall survival",
+      xlab = "Time (months)",
+      risk.table = TRUE,
+      risk.table.height = 0.20,
+      legend.title = legend_title,
+      palette = color_palette,
+      title = paste("Kaplan-Meier Curve:", signature_name, title_suffix),
+      tables.y.text = FALSE, 
+      ggtheme = theme_bw(),
+      font.legend = font_legend,
+      pval.size = risk_table_number_size,
+      risk.table.fontsize = risk_table_number_size,
+      align = TRUE, 
+      tables.theme = theme_cleantable() +
+        theme(axis.title.x = element_blank(), 
+              axis.title.y = element_blank(), 
+              plot.title = element_blank())
+    )
+    
+    # map linewidth to subgroup
+    plot$plot <- plot$plot +
+      aes(size = group_numeric) +
+      scale_size_manual(values = line_sizes, guide = "none") +
+      theme(
+        plot.title = element_text(size = font, face = "bold", color = "black"),
+        axis.title.x = element_text(size = font, face = "plain", color = "black"),
+        axis.title.y = element_text(size = font, face = "plain", color = "black"),
+        axis.text.x  = element_text(size = font, face = "plain", color = "black"),
+        axis.text.y  = element_text(size = font, face = "plain", color = "black")
+      )
+    
+    return(list(plot = plot, surv_fit = surv_fit, surv_diff = surv_diff))
+  }
+  
+  
+  # split into pre- and post-switch datasets
+  pre_data  <- dt[dt$sig_activity < switch_point, ]
+  post_data <- dt[dt$sig_activity >= switch_point, ]
+  
+  # plots
+  pre_result <- create_survival_plot(pre_data, "Pre-switch subgrouping",
+                                     paste(signature_name, "pre-switch groups"))
+  post_result <- create_survival_plot(post_data, "Post-switch subgrouping",
+                                      paste(signature_name, "post-switch groups"))
+  
+  # return plots
+  return(list(
+    pre_plot  = pre_result$plot,
+    post_plot = post_result$plot
+  ))
+}
+
 
 analyze_signature_complete <- function(signature_name, datasets = c("external", "paper", "all"), cutoff = NULL) {
   
@@ -1489,7 +1603,7 @@ create_diverging_signature_plot <- function(Li_data, ref_based_data) {
 create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_based_data, effect_data) {
   
   font <- 11
-  scale <- 7.25
+  scale <- 10
   
   # LEFT SIDE: Signature groupings for shared signatures
   left_signature_groupings <- list(
@@ -1497,14 +1611,14 @@ create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_base
     "APOBEC (13)" = c("SBS13"),
     "Tobacco (4)" = c("SBS4")
   )
-  left_other_label <- "Non-actionable and unknown"
+  left_other_label <- "Non-actionable and unknown (40, 60)"
   
   # LEFT SIDE: Cannataro colors
   left_cannataro_colors <- c(
     "Unknown, clock-like (5)" = "gray60",
     "APOBEC (13)" = "#7570b3",
     "Tobacco (4)" = "#a6761d",
-    "Non-actionable and unknown" = "black"
+    "Non-actionable and unknown (40, 60)" = "black"
   )
   
   # RIGHT SIDE: Signature groupings for ref_based only signatures
@@ -1682,7 +1796,7 @@ create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_base
     geom_text(aes(x = 0, y = type, label = label),
               size = 12 / 2.8, 
               fontface = "plain", 
-              hjust = 0.5, parse = TRUE) +
+              hjust = 0.5, vjust = 1.2, parse = TRUE) +
     scale_x_continuous(limits = c(-0.5, 0.5)) +
     scale_y_continuous(limits = c(-1, 1)) +  # Add y scale to allow positioning
     theme_void() +
@@ -1694,37 +1808,43 @@ create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_base
     )
   
   # Set legend name
-  sig_legend_name <- ''
+  # Legend names
+  # sig_legend_name_left <- expression(paste("Signatures identified by ", italic("de novo"), " extraction"))
+  sig_legend_name_left <- expression(paste("Signatures identified by ", italic("de novo"), " extraction"))
   
-  # Order groups for left panel legend
-  if(nrow(left_dt) > 0) {
-    left_group_totals <- left_dt[, .(total_proportion = sum(prop)), by = group]
-    left_group_order <- left_group_totals[order(-total_proportion), group]
-  } else {
-    left_group_order <- unique(left_dt$group)
-  }
-  
-  # Order groups for right panel legend
-  if(nrow(right_dt_extended) > 0) {
-    right_group_totals <- right_dt_extended[, .(total_proportion = sum(prop)), by = group]
-    right_group_order <- right_group_totals[order(-total_proportion), group]
-  } else {
-    right_group_order <- unique(right_dt_extended$group)
-  }
+  sig_legend_name_right <- expression(scriptstyle(atop(
+    "Signatures identified",
+    atop("by reference-based assignment",
+         paste("not identified by ", italic("de novo"), " extraction"))
+  )))
   
   # Apply legend styling to left plot
   p_left <- p_left +
-    scale_fill_manual(name = sig_legend_name, values = left_cannataro_colors,
+    scale_fill_manual(name = sig_legend_name_left, values = left_cannataro_colors,
                       breaks = left_final_order) +
-    guides(fill = guide_legend(reverse = TRUE, nrow = 2, byrow = TRUE)) +
-    theme(legend.position = "bottom", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
-  
+    guides(fill = guide_legend(title.position = "top", title.hjust = 0,  # keep left aligned
+                               reverse = TRUE, ncol = 1, byrow = TRUE)) +
+    theme(
+      legend.position = "bottom",
+      legend.title = element_text(hjust = 0, size = scale),  # force left alignment
+      legend.text = element_text(color = "black", size = scale, face = "plain"),
+      legend.key.size = unit(scale / 10, "lines")
+    )
+
   # Apply legend styling to right plot
   p_right <- p_right +
-    scale_fill_manual(name = sig_legend_name, values = right_cannataro_colors,
+    scale_fill_manual(name = sig_legend_name_right, values = right_cannataro_colors,
                       breaks = right_final_order) +
-    guides(fill = guide_legend(reverse = TRUE, nrow = 4, byrow = TRUE)) +
-    theme(legend.position = "bottom", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
+    guides(fill = guide_legend(title.position = "top", title.hjust = 0,  # keep left aligned
+                               reverse = TRUE, ncol = 1, byrow = TRUE)) +
+    theme(
+      legend.position = "bottom",
+      legend.title = element_text(hjust = 0, size = scale * 2),  # force left alignment
+      legend.text = element_text(color = "black", size = scale, face = "plain"),
+      legend.key.size = unit(scale / 10, "lines")
+    )
+  
+  
   # https://github.com/wilkelab/cowplot/issues/202#issuecomment-2550098822
   get_legend2 <- function(plot, legend = NULL) {
     gt <- ggplotGrob(plot)
@@ -1746,7 +1866,8 @@ create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_base
   }
   legend_left <- get_legend2(p_left, legend = "bottom")
   legend_right <- get_legend2(p_right, legend = "bottom")
-  panel_1 <- plot_grid(NULL, legend_left, legend_right, nrow = 1, ncol = 3, rel_widths = c(0.75, 3.5, 4.8))
+  
+  panel_1 <- plot_grid(legend_left, legend_right, nrow = 1)
   p_right <- p_right + theme(legend.position = "none")
   p_left <- p_left + theme(legend.position = "none")
   # #combine with plot_grid
@@ -1908,23 +2029,23 @@ create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_base
   
   # Apply legend styling to left plot
   p_left_effect <- p_left_effect +
-    scale_fill_manual(name = sig_legend_name, values = left_cannataro_colors,
+    scale_fill_manual(name = sig_legend_name_left, values = left_cannataro_colors,
                       breaks = left_final_order) +
     guides(fill = guide_legend(reverse = TRUE, nrow = 2, byrow = TRUE)) +
     theme(legend.position = "none", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
   
   # Apply legend styling to right plot
   p_right_effect <- p_right_effect +
-    scale_fill_manual(name = sig_legend_name, values = right_cannataro_colors,
+    scale_fill_manual(name = sig_legend_name_right, values = right_cannataro_colors,
                       breaks = right_final_order) +
     guides(fill = guide_legend(reverse = TRUE, nrow = 4, byrow = TRUE)) +
     theme(legend.position = "none", legend.text = element_text(color = "black", size = scale, face="plain"), legend.key.size = unit(scale/10, "lines"))
   
   panel_3<- plot_grid(p_label_effect, p_left_effect, p_right_effect, NULL, ncol =4, nrow = 1, rel_widths = c(1.2,4.2,4.2,1.2))
   
-  combined_plots <- plot_grid(panel_1, panel_2, panel_3, nrow=3, ncol=1, rel_heights = c(7,12, 7))
+  # combined_plots <- plot_grid(panel_2, panel_3, nrow=2, ncol=1, rel_heights = c(12, 7))
   
-  return(combined_plots)
+  return(list(label = panel_1, TMB = panel_2, effect = panel_3))
 }
 
 # ----------------Gene Level Analysis ------------------------

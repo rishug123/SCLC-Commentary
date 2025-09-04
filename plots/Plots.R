@@ -31,7 +31,7 @@ data_paper <- data_paper[complete.cases(data_paper),]
 
 SBS4_0.25 <- plot_TMB_binary_boxplot(data_paper, "SBS4", 0.25, "(Binary for Signature Presence: 0.25)")
 SBS4_optimal <- plot_TMB_binary_boxplot(data_paper, "SBS4", SBS4_survival_optimal_cutoff_paper_mean, paste0("(Optimal Binary for Signature Presence: ",SBS4_survival_optimal_cutoff_paper_mean,")"))
-SBS13_0.25 <- plot_TMB_binary_boxplot(data_paper, "SBS13", 0.25, "(Binary for Signature Presence: 0.25)")
+SBS13_0.25 <- plot_TMB_binary_boxplot(data_paper, "SBS13", 0.25, "(Binary for Signature Presence: 0.25)", p_value = FALSE)
 SBS13_optimal <- plot_TMB_binary_boxplot(data_paper, "SBS13", SBS13_survival_optimal_cutoff_paper_mean, paste0("(Optimal Binary for Signature Presence: ",SBS13_survival_optimal_cutoff_paper_mean,")"))
 
 # SBS4_0.25
@@ -134,7 +134,8 @@ SBS4_survival_0.25 <- SBS4_results$paper$binary$plot_0.25
 SBS4_survival_optimal <- SBS4_results$paper$binary$plot_optimal
 SBS4_survival_continuous <- SBS4_results$paper$continuous$plot_continuous
 
-SBS13_survival_0.25 <- SBS13_results$paper$binary$plot_0.25
+SBS13_survival_0.25 <- analyze_signature(signature_name = "SBS13", dataset = "paper", biological_weight_table = biological_weights_paper, survival_data = survival_data_paper, p_value = FALSE)
+SBS13_survival_0.25 <- SBS13_survival_0.25$plot_0.25
 SBS13_survival_optimal <- SBS13_results$paper$binary$plot_optimal
 SBS13_survival_continuous <- SBS13_results$paper$continuous$plot_continuous
 
