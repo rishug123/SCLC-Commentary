@@ -1,26 +1,36 @@
 setwd("plots") # the location the r script will save
 
 # Fig 1
-Fig1a <- diverging_plot_sig_comparison
-Fig1b <- SBS4_0.25 +  theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2)) + ggtitle(NULL)
-Fig1d <- SBS4_optimal + ggtitle(NULL) + theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2))
-Fig1c <- SBS13_0.25 + ggtitle(NULL) + theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2))
-Fig1e <- SBS13_optimal + ggtitle(NULL) + theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2))
-Fig1f <- paper_TMB_linreg_SBS4 + ggtitle(NULL) + theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2)) 
-Fig1g <- paper_TMB_linreg_SBS13 + ggtitle(NULL) + theme(legend.position = "none", legend.margin = margin(0,0,0,0),  legend.spacing.x = unit(1, "mm"), legend.spacing.y = unit(1, "mm")) + theme(aspect.ratio = 0.5, plot.margin = margin(0, 10, 0, 2)) 
+Fig1a_1 <- diverging_plot_sig_comparison$TMB
+Fig1a_2 <- diverging_plot_sig_comparison$label + theme(legend.margin = margin(0, 0, 0, 0))
+Fig1a_3 <- diverging_plot_sig_comparison$effect
 
-Fig1_p1 <- plot_grid(Fig1a, nrow = 1, ncol = 1, labels = "a")
-Fig1_p2 <- plot_grid(Fig1b, Fig1c, Fig1d, Fig1e, Fig1f, Fig1g, nrow=3, ncol=2, labels = c("b", "c", "d", "e", "f", "g"))
 
-Fig1 <- plot_grid (Fig1_p1, Fig1_p2, nrow=2, ncol = 1, rel_heights = c(1,1.5))
-Fig1 <- Fig1 + theme(plot.background = element_rect(fill = "white", color = "white"))
-ggsave("figure_1.png", plot = Fig1, width = 7, height = 10)
+Fig1b <- SBS4_0.25 +
+  ggtitle(NULL) +
+  labs(color = NULL) +
+  theme(
+    legend.position = "none",
+    legend.margin = margin(0, 10, 0, 2),
+    legend.spacing.x = unit(1, "mm"),
+    legend.spacing.y = unit(1, "mm"),
+    aspect.ratio = 1
+  )
+Fig1c <- SBS13_0.25 +
+  ggtitle(NULL) +
+  labs(color = NULL) +
+  theme(
+    legend.position = "none",
+    legend.margin = margin(0, 10, 0, 2),
+    legend.spacing.x = unit(1, "mm"),
+    legend.spacing.y = unit(1, "mm"),
+    aspect.ratio = 1
+  )
 
-# Fig 2
 
 # SBS4 survival at 0.25 cutoff
-Fig2a <- SBS4_survival_0.25
-Fig2a$plot <- Fig2a$plot +
+Fig1d <- SBS4_survival_0.25
+Fig1d$plot <- Fig1d$plot +
   ggtitle(NULL) +
   labs(color = NULL) +
   theme(
@@ -32,13 +42,49 @@ Fig2a$plot <- Fig2a$plot +
   )
 
 # SBS13 survival at 0.25 cutoff
-Fig2b <- SBS13_survival_0.25
-Fig2b$plot <- Fig2b$plot +
+Fig1e <- SBS13_survival_0.25
+Fig1e$plot <- Fig1e$plot +
   ggtitle(NULL) +
   labs(color = NULL) +
   theme(
     legend.position = "top",
     legend.margin = margin(0,0,0,0),
+    legend.spacing.x = unit(1, "mm"),
+    legend.spacing.y = unit(1, "mm"),
+    aspect.ratio = 1
+  )
+
+
+
+panel_d <- plot_grid(Fig1d$plot, Fig1d$table, ncol = 1, rel_heights = c(3, 1), labels = c("", ""),  label_y = 0.98)
+panel_e <- plot_grid(Fig1e$plot, Fig1e$table, ncol = 1,  rel_heights = c(3, 1), labels = c("", ""),  label_y = 0.98)
+
+
+Fig1_p1 <- plot_grid(Fig1a_1, NULL ,Fig1a_3, nrow = 3, ncol = 1, labels = c("a","", "b"), rel_heights = c(12, 1, 7),  label_y = 1.04)
+Fig1_top <- plot_grid(Fig1_p1, Fig1a_2, nrow=1, ncol = 2, rel_widths = c(6,4))
+Fig1_bottom <- plot_grid(Fig1b, Fig1c, panel_d, panel_e, nrow=1, ncol=4, labels = c("c", "d", "e", "f"),  label_y = 0.97) + theme(plot.background = element_rect(fill = "white", color = "white"))
+
+Fig1 <- plot_grid(Fig1_top, Fig1_bottom, nrow=2, rel_heights = c(1,1)) + theme(plot.background = element_rect(fill = "white", color = "white"))
+ggsave("figure_1.png", plot = Fig1, width = 15, height = 8)
+
+# Fig 2
+
+Fig2a <- SBS4_optimal +
+  ggtitle(NULL) +
+  labs(color = NULL) +
+  theme(
+    legend.position = "none",
+    legend.margin = margin(0, 10, 0, 2),
+    legend.spacing.x = unit(1, "mm"),
+    legend.spacing.y = unit(1, "mm"),
+    aspect.ratio = 1
+  )
+Fig2b <- SBS13_optimal +
+  ggtitle(NULL) +
+  labs(color = NULL) +
+  theme(
+    legend.position = "none",
+    legend.margin = margin(0, 10, 0, 2),
     legend.spacing.x = unit(1, "mm"),
     legend.spacing.y = unit(1, "mm"),
     aspect.ratio = 1
@@ -70,27 +116,40 @@ Fig2d$plot <- Fig2d$plot +
     aspect.ratio = 1
   )
 
-Fig2e <- SBS4_survival_continuous + theme(
-  legend.margin = margin(0, 0, 0, 0),
-  legend.spacing.x = unit(1, "mm"),
-  legend.spacing.y = unit(1, "mm"),
-  aspect.ratio = 1, plot.margin = margin(0, 10, 0, 10)
-)
-Fig2f <- SBS13_survival_continuous + theme(
-  legend.margin = margin(0, 0, 0, 0),
-  legend.spacing.x = unit(1, "mm"),
-  legend.spacing.y = unit(1, "mm"),
-  aspect.ratio = 1, plot.margin = margin(0, 10, 0, 10)
-)
+Fig2c <- plot_grid(Fig2c$plot, Fig2c$table, ncol = 1,  rel_heights = c(3, 1), labels = c("", ""),  label_y = 0.98)
+Fig2d <- plot_grid(Fig2d$plot, Fig2d$table, ncol = 1,  rel_heights = c(3, 1), labels = c("", ""),  label_y = 0.98)
 
-panel_a <- plot_grid(Fig2a$plot, Fig2a$table, ncol = 1, align = "v", rel_heights = c(3, 1), labels = c("a", ""),  label_y = 0.98)
-panel_b <- plot_grid(Fig2b$plot, Fig2b$table, ncol = 1, align = "v", rel_heights = c(3, 1), labels = c("b", ""),  label_y = 0.98)
-panel_c <- plot_grid(Fig2c$plot, Fig2c$table, ncol = 1, align = "v", rel_heights = c(3, 1), labels = c("c", ""),  label_y = 0.98)
-panel_d <- plot_grid(Fig2d$plot, Fig2d$table, ncol = 1, align = "v", rel_heights = c(3, 1), labels = c("d", ""),  label_y = 0.98)
 
-# Combine all panels into a 2x2 grid with tags A-D
-Fig2 <- plot_grid(panel_a, panel_b, panel_c, panel_d, Fig2e, Fig2f, nrow=3, ncol=2, labels = c("", "", "", "", "e", "f"), rel_heights = c(1, 1, 0.8)) + theme(plot.background = element_rect(fill = "white", color = "white"),  label_y = 2, vjust = -0.5)
-ggsave("figure_2.png", plot = Fig2, width = 7, height = 12)
+Fig2e <- paper_TMB_linreg_SBS4 +
+  ggtitle(NULL) +
+  labs(color = NULL) +
+  theme(
+    legend.position = "none",
+    legend.margin = margin(0, 0, 0, 0),
+    legend.spacing.x = unit(1, "mm"),
+    legend.spacing.y = unit(1, "mm"),
+    aspect.ratio = 1
+  )
+
+Fig2f <- paper_TMB_linreg_SBS13 +
+  ggtitle(NULL) +
+  labs(color = NULL) +
+  theme(
+    legend.position = "none",
+    legend.margin = margin(0, 0, 0, 0),
+    legend.spacing.x = unit(1, "mm"),
+    legend.spacing.y = unit(1, "mm"),
+    aspect.ratio = 1
+  )
+
+
+# Combine into 2x2 grid with tags
+Fig2 <- plot_grid(Fig2a, Fig2b, Fig2c, Fig2d, Fig2e, Fig2f, 
+                      nrow = 3, ncol = 2, labels = c("a", "b", "c", "d", "e", "f"), rel_heights = c(1,1)) +
+  theme(plot.background = element_rect(fill = "white", color = "white"))
+
+# Save figure
+ggsave("figure_2.png", plot = Fig2, width = 7, height = 11)
 
 
 # Supp fig 1
@@ -175,7 +234,7 @@ SuppFig2 <- plot_grid(sfig2a, sfig2b,
 
 ggsave("supp_fig_2.png", plot = SuppFig2, width = 8, height = 3.5)
 
-# Assign the external survival plots properly
+# supplemental figure 3
 
 sfig3a <- external_TMB_linreg_SBS4
 sfig3b <- external_TMB_linreg_SBS13
@@ -203,22 +262,39 @@ sfig3b <- sfig3b +
     aspect.ratio = 1
   )
 
-sfig3c <- SBS4_results$external$continuous$plot_continuous + theme(
-  legend.margin = margin(0, 0, 0, 0),
-  legend.spacing.x = unit(1, "mm"),
-  legend.spacing.y = unit(1, "mm"),
-  aspect.ratio = 1, plot.margin = margin(0, 10, 0, 10)
-)
-sfig3d <- SBS13_results$external$continuous$plot_continuous + theme(
-  legend.margin = margin(0, 0, 0, 0),
-  legend.spacing.x = unit(1, "mm"),
-  legend.spacing.y = unit(1, "mm"),
-  aspect.ratio = 1, plot.margin = margin(0, 10, 0, 10)
-)
+sfig3c <- SBS4_results$external$binary$plot_optimal
+sfig3d <- SBS13_results$external$binary$plot_optimal
+
+sfig3c$plot <- sfig3c$plot +
+  ggtitle(NULL) +
+  labs(color = NULL) +
+  theme(
+    legend.position = "top",
+    legend.margin = margin(0, 0, 0, 0),
+    legend.spacing.x = unit(1, "mm"),
+    legend.spacing.y = unit(1, "mm"),
+    aspect.ratio = 1
+  )
+
+sfig3d$plot <- sfig3d$plot +
+  ggtitle(NULL) +
+  labs(color = NULL)+
+  theme(
+    legend.position = "top",
+    legend.margin = margin(0, 0, 0, 0),
+    legend.spacing.x = unit(1, "mm"),
+    legend.spacing.y = unit(1, "mm"),
+    aspect.ratio = 1
+  )
+
+panel_s3c <- plot_grid(sfig3c$plot, sfig3c$table, ncol = 1, align = "v", rel_heights = c(9, 3), labels = c("c", ""),  label_y = 0.96)
+panel_s3d <- plot_grid(sfig3d$plot, sfig3d$table, ncol = 1, align = "v", rel_heights = c(9, 3), labels = c("d", ""),  label_y = 0.96)
+
+
 
 # Combine into 2x2 grid with tags
-SuppFig3 <- plot_grid(sfig3a, sfig3b, sfig3c, sfig3d, 
-                      nrow = 2, ncol = 2, labels = c("a", "b", "c", "d"), rel_heights = c(1,1)) +
+SuppFig3 <- plot_grid(sfig3a, sfig3b, panel_s3c, panel_s3d, 
+                      nrow = 2, ncol = 2, labels = c("a", "b", "", ""), rel_heights = c(2,3)) +
   theme(plot.background = element_rect(fill = "white", color = "white"))
 
 # Save figure
