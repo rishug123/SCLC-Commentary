@@ -889,17 +889,17 @@ plot_TMB_linear_regression <- function(biological_weights_table, dataset, signat
       geom_point(size = 1.5, color = color) +
       geom_smooth(method = "lm", se = FALSE, color = color, size = 0.5) +
       scale_y_continuous(
-        limits = c(0, 3),
-        breaks = 0:3,
+        limits = c(1, 3),
+        breaks = 1:3,
         labels = scales::math_format(10^.x)
       ) +
       xlim(0, xmax) +
       labs(x = paste0(sig_name, " signature activity"), y = "TMB") +
-      annotate("text", x = xmax, y = 1.0, label = eqn_string, parse = TRUE,
+      annotate("text", x = xmax, y = 1.5, label = eqn_string, parse = TRUE,
                hjust = 1.05, vjust = 0, size = font / 4, color = color) +
-      annotate("text", x = xmax, y = 0.6, label = r2_string, parse = TRUE,
+      annotate("text", x = xmax, y = 1.3, label = r2_string, parse = TRUE,
                hjust = 1.05, vjust = 0, size = font / 4, color = color) +
-      annotate("text", x = xmax, y = 0.2, label = p_label, parse = TRUE,
+      annotate("text", x = xmax, y = 1.1, label = p_label, parse = TRUE,
                hjust = 1.05, vjust = 0, size = font / 4, color = color) +
       theme_bw(base_size = font) +
       theme(

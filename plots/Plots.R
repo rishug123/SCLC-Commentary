@@ -62,46 +62,62 @@ sbs13_max <- 0.15
 # SBS4 TMB
 sbs4_tmb_bs_distribution <- ggplot(sbs4_tmb_df, aes(x = cutoff)) +
   geom_histogram(fill = "#a6761d", color = "black", bins = 30) +
-  geom_vline(aes(xintercept = SBS4_paper_optimal_TMB_cutoff_for_paper_non_bs$estimate, color = "Non-Bootstrapped Cutoff"), size = 1) +
+  geom_vline(aes(xintercept = SBS4_paper_optimal_TMB_cutoff_for_paper_non_bs$estimate, color = "Non-Bootstrapped Cutoff"), linewidth = 1) +
   geom_vline(aes(xintercept = SBS4_TMB_optimal_cutoff_paper_mean, color = "Bootstrap Mean"), size = 1) +
   scale_color_manual(name = NULL, values = c("Non-Bootstrapped Cutoff" = "red", "Bootstrap Mean" = "green")) +
   scale_x_continuous(limits = c(sbs4_min, sbs4_max)) +
   labs(title = "Bootstrap Distribution of Optimal SBS4 TMB Cutoff (Paper Data)", x = "SBS4 TMB cutoff value", y = "Frequency") +
-  theme_minimal(base_size = font_size) +
-  theme(legend.position = "top")
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    legend.text = element_text(size = font_size),
+    axis.title = element_text(size = font_size)
+  )
 
 # SBS4 Survival
 sbs4_surv_bs_distribution <- ggplot(sbs4_surv_df, aes(x = cutoff)) +
   geom_histogram(fill = "#a6761d", color = "black", bins = 30) +
-  geom_vline(aes(xintercept = SBS4_paper_optimal_survival_cutoff_for_paper_non_bs$estimate, color = "Non-Bootstrapped Cutoff"), size = 1) +
+  geom_vline(aes(xintercept = SBS4_paper_optimal_survival_cutoff_for_paper_non_bs$estimate, color = "Non-Bootstrapped Cutoff"), linewidth = 1) +
   geom_vline(aes(xintercept = SBS4_survival_optimal_cutoff_paper_mean, color = "Bootstrap Mean"), size = 1) +
   scale_color_manual(name = NULL, values = c("Non-Bootstrapped Cutoff" = "red", "Bootstrap Mean" = "green")) +
   scale_x_continuous(limits = c(sbs4_min, sbs4_max)) +
   labs(title = "Bootstrap Distribution of Optimal SBS4 Survival Cutoff (Paper Data)", x = "SBS4 survival cutoff value", y = "Frequency") +
-  theme_minimal(base_size = font_size) +
-  theme(legend.position = "top")
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    legend.text = element_text(size = font_size),
+    axis.title = element_text(size = font_size)
+  )
 
 # SBS13 TMB
 sbs13_tmb_bs_distribution <- ggplot(sbs13_tmb_df, aes(x = cutoff)) +
   geom_histogram(fill = "#7570b3", color = "black", bins = 30) +
-  geom_vline(aes(xintercept = SBS13_paper_optimal_TMB_cutoff_for_paper_non_bs$estimate, color = "Non-Bootstrapped Cutoff"), size = 1) +
+  geom_vline(aes(xintercept = SBS13_paper_optimal_TMB_cutoff_for_paper_non_bs$estimate, color = "Non-Bootstrapped Cutoff"), linewidth = 1) +
   geom_vline(aes(xintercept = SBS13_TMB_optimal_cutoff_paper_mean, color = "Bootstrap Mean"), size = 1) +
   scale_color_manual(name = NULL, values = c("Non-Bootstrapped Cutoff" = "red", "Bootstrap Mean" = "green")) +
   scale_x_continuous(limits = c(sbs13_min, sbs13_max)) +
   labs(title = "Bootstrap Distribution of Optimal SBS13 TMB Cutoff (Paper Data)", x = "SBS13 TMB cutoff value", y = "Frequency") +
-  theme_minimal(base_size = font_size) +
-  theme(legend.position = "top")
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    legend.text = element_text(size = font_size),
+    axis.title = element_text(size = font_size)
+  )
 
 # SBS13 Survival
 sbs13_surv_bs_distribution <- ggplot(sbs13_surv_df, aes(x = cutoff)) +
   geom_histogram(fill = "#7570b3", color = "black", bins = 30) +
-  geom_vline(aes(xintercept = SBS13_paper_optimal_survival_cutoff_for_paper_non_bs$estimate, color = "Non-Bootstrapped Cutoff"), size = 1) +
+  geom_vline(aes(xintercept = SBS13_paper_optimal_survival_cutoff_for_paper_non_bs$estimate, color = "Non-Bootstrapped Cutoff"), linewidth = 1) +
   geom_vline(aes(xintercept = SBS13_survival_optimal_cutoff_paper_mean, color = "Bootstrap Mean"), size = 1) +
   scale_color_manual(name = NULL, values = c("Non-Bootstrapped Cutoff" = "red", "Bootstrap Mean" = "green")) +
   scale_x_continuous(limits = c(sbs13_min, sbs13_max)) +
   labs(title = "Bootstrap Distribution of Optimal SBS13 Survival Cutoff (Paper Data)", x = "SBS13 survival cutoff value", y = "Frequency") +
-  theme_minimal(base_size = font_size) +
-  theme(legend.position = "top")
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    legend.text = element_text(size = font_size),
+    axis.title = element_text(size = font_size)
+  )
 
 
 paper_signatures <- as.data.table(paper_signatures)

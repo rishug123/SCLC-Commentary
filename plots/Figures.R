@@ -144,12 +144,12 @@ Fig2f <- paper_TMB_linreg_SBS13 +
 
 
 # Combine into 2x2 grid with tags
-Fig2 <- plot_grid(Fig2a, Fig2b, Fig2c, Fig2d, Fig2e, Fig2f, 
-                      nrow = 3, ncol = 2, labels = c("a", "b", "c", "d", "e", "f"), rel_heights = c(1,1)) +
+Fig2 <- plot_grid(Fig2a, Fig2c, Fig2e, Fig2b, Fig2d, Fig2f, 
+                      nrow = 2, ncol = 3, labels = c("a", "c", "e", "b", "d", "f")) +
   theme(plot.background = element_rect(fill = "white", color = "white"))
 
 # Save figure
-ggsave("figure_2.png", plot = Fig2, width = 7, height = 11)
+ggsave("figure_2.png", plot = Fig2, width = 11, height = 7)
 
 
 # Supp fig 1
@@ -232,7 +232,7 @@ SuppFig2 <- plot_grid(sfig2a, sfig2b,
                       nrow = 1, ncol = 2, labels = c("a", "b"),  label_y = 0.98)+
   theme(plot.background = element_rect(fill = "white", color = "white"))
 
-ggsave("supp_fig_2.png", plot = SuppFig2, width = 8, height = 3.5)
+ggsave("supp_fig_2.png", plot = SuppFig2, width = 10, height = 3.5)
 
 # supplemental figure 3
 
