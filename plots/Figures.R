@@ -60,7 +60,7 @@ panel_d <- plot_grid(Fig1d$plot, Fig1d$table, ncol = 1, rel_heights = c(3, 1), l
 panel_e <- plot_grid(Fig1e$plot, Fig1e$table, ncol = 1,  rel_heights = c(3, 1), labels = c("", ""),  label_y = 0.98)
 
 
-Fig1_p1 <- plot_grid(Fig1a_1, NULL ,Fig1a_3, nrow = 3, ncol = 1, labels = c("A","", "B"), rel_heights = c(12, 1, 7),  label_y = 1.03)
+Fig1_p1 <- plot_grid(Fig1a_1, NULL ,Fig1a_3, nrow = 3, ncol = 1, labels = c("A","", "B"), rel_heights = c(12, 1, 7),  label_y = 1.04)
 Fig1_top <- plot_grid(Fig1_p1, Fig1a_2, nrow=1, ncol = 2, rel_widths = c(6,4))
 Fig1_bottom <- plot_grid(Fig1b, Fig1c, panel_d, panel_e, nrow=1, ncol=4, labels = c("C", "D", "E", "F"),  label_y = 0.97) + theme(plot.background = element_rect(fill = "white", color = "white"))
 

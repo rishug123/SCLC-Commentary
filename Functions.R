@@ -389,23 +389,15 @@ plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label, p_value 
   high_count <- ifelse(high_label %in% names(group_counts), group_counts[high_label], 0)
   low_count  <- ifelse(low_label %in% names(group_counts), group_counts[low_label], 0)
   
-  # Calculate 2-sided t test p-value
-  if (p_value == TRUE){
-    statistics <- t.test(total_snvs ~ x_group, data = data, alternative = "two.sided")
-    p_val <- statistics$p.value
-    parameter <- statistics$estimate[1] - statistics$estimate[2]
-    CI_lower <- statistics$conf.int[1]
-    CI_upper <- statistics$conf.int[2]
-    
-    statistics_summary_df <- data.frame(p_value = p_val, parameter = parameter, CI_lower= CI_lower, CI_upper = CI_upper)
-    
-    if (p_val > 0.01){
-      p_label <- paste0("italic(P) == ", signif(p_val, num_digits_after_decimal))
-    } else{
-      p_val <- gsub("e(-?\\d+)", " %*% 10^{\\1}", formatC(p_val, format = "e", digits = num_digits_after_decimal))
-      p_label <- paste0("italic(P) == ", p_val)
-    }
+  # Calculate Wilcoxon p-value
+  p_val <- wilcox.test(total_snvs ~ x_group, data = data)$p.val
+  if (p_val > 0.01){
+    p_label <- paste0("italic(P) == ", signif(p_val, num_digits_after_decimal))
+  } else{
+    p_val <- gsub("e(-?\\d+)", " %*% 10^{\\1}", formatC(p_val, format = "e", digits = num_digits_after_decimal))
+    p_label <- paste0("italic(P) == ", p_val)
   }
+  
   # Step 3: Color group labels (keep on one line)
   data <- data %>%
     mutate(
@@ -460,13 +452,9 @@ plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label, p_value 
   if (p_value == TRUE) {
     base_plot <- base_plot + annotate("text", x = 1.5, y = 10^0.75, label = p_label,
                                       parse = TRUE, size = font / 2.845) 
-    
-    return <- list(plot = base_plot, statistics_summary_df = statistics_summary_df)
-  } else{
-    return <- base_plot
   }
   
-  return(return)
+  return(base_plot)
 }
 
 compute_TMB_group_summary <- function(data, signature_col, cutoff) {
@@ -482,12 +470,14 @@ compute_TMB_group_summary <- function(data, signature_col, cutoff) {
   n_low <- ifelse("Low" %in% names(group_counts), group_counts["Low"], 0)
   n_high <- ifelse("High" %in% names(group_counts), group_counts["High"], 0)
   
-  tt <- t.test(total_snvs ~ x_group, data = data, conf.level = 0.95)
+  # Wilcoxon test with Hodges-Lehmann estimate
+  wt <- wilcox.test(total_snvs ~ x_group, data = data, conf.int = TRUE, conf.level = 0.95)
   
-  t_p_sci <- formatC(tt$p.value, format = "e", digits = 2)
-  mean_diff_sci <- formatC(diff(tt$estimate), format = "e", digits = 2)
-  CI_lower_sci <- formatC(tt$conf.int[1], format = "e", digits = 2)
-  CI_upper_sci <- formatC(tt$conf.int[2], format = "e", digits = 2)
+  # Format in scientific notation with 2 significant figures
+  wilcox_p_sci <- formatC(wt$p.value, format = "e", digits = 2)
+  HL_median_sci <- formatC(wt$estimate, format = "e", digits = 2)
+  HL_CI_lower_sci <- formatC(wt$conf.int[1], format = "e", digits = 2)
+  HL_CI_upper_sci <- formatC(wt$conf.int[2], format = "e", digits = 2)
   
   # Create summary table
   summary_table <- tibble(
@@ -495,10 +485,10 @@ compute_TMB_group_summary <- function(data, signature_col, cutoff) {
     cutoff = cutoff,
     n_low = n_low,
     n_high = n_high,
-    ttest_p = t_p_sci,
-    mean_diff = mean_diff_sci,
-    CI_lower = CI_lower_sci,
-    CI_upper = CI_upper_sci
+    wilcox_p = wilcox_p_sci,
+    HL_median_diff = HL_median_sci,
+    HL_CI_lower = HL_CI_lower_sci,
+    HL_CI_upper = HL_CI_upper_sci
   )
   
   return(summary_table)
