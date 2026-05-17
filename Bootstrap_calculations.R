@@ -5,15 +5,25 @@ library(maxstat)
 library(survival)
 library(ces.refset.hg19)
 
+# Toggle to "deconstructSigs" to re-run all bootstraps with the alternate attribution
+signature_extractor <- "MutationalPatterns"
+signature_extractor <- "deconstructSigs" # comment this in or out
+
+# Exome size (Mb) for WES TMB normalization (all cohorts are WES)
+exome_mb <- 38
+
+# maxstat.test() below uses pmethod = "HL" (Hothorn-Lausen asymptotic approximation),
+# which is the maximally-selected log-rank correction in the Miller-Siegmund family.
+
 ## -----------Import the cesa objects
 cesa_paper <- load_cesa("cesa_paper_new.rds")
-cesa_external <- load_cesa("cesa_external.rds")
-cesa_all <- load_cesa("cesa_all.rds")
+# cesa_external <- load_cesa("cesa_external.rds")
+# cesa_all <- load_cesa("cesa_all.rds")
 
 ## -----------clear the assigned signatures
 cesa_paper <- clear_trinuc_rates_and_signatures(cesa_paper)
-cesa_external <- clear_trinuc_rates_and_signatures(cesa_external)
-cesa_all <- clear_trinuc_rates_and_signatures(cesa_all)
+# cesa_external <- clear_trinuc_rates_and_signatures(cesa_external)
+# cesa_all <- clear_trinuc_rates_and_signatures(cesa_all)
 
 
 ## -----------extra code
@@ -84,7 +94,7 @@ bootstrap_analysis_SBS4_survival_optimal_cutoff_paper <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_paper <- trinuc_mutation_rates(
       cesa_paper,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = paper_filtered$treated_ids, 
@@ -93,7 +103,7 @@ bootstrap_analysis_SBS4_survival_optimal_cutoff_paper <- function(num_bs) {
     
     cesa_paper <- trinuc_mutation_rates(
       cesa_paper,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = untreated_exclusions,
       samples = paper_filtered$untreated_ids,
@@ -142,7 +152,7 @@ bootstrap_analysis_SBS13_survival_optimal_cutoff_paper <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_paper <- trinuc_mutation_rates(
       cesa_paper,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = paper_filtered$treated_ids, 
@@ -151,7 +161,7 @@ bootstrap_analysis_SBS13_survival_optimal_cutoff_paper <- function(num_bs) {
     
     cesa_paper <- trinuc_mutation_rates(
       cesa_paper,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = untreated_exclusions,
       samples = paper_filtered$untreated_ids,
@@ -201,7 +211,7 @@ bootstrap_analysis_SBS4_survival_optimal_cutoff_external <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_external <- trinuc_mutation_rates(
       cesa_external,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = external_filtered$treated_ids, 
@@ -260,7 +270,7 @@ bootstrap_analysis_SBS13_survival_optimal_cutoff_external <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_external <- trinuc_mutation_rates(
       cesa_external,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = external_filtered$treated_ids, 
@@ -320,7 +330,7 @@ bootstrap_analysis_SBS4_survival_optimal_cutoff_all <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_all <- trinuc_mutation_rates(
       cesa_all,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = all_filtered$treated_ids, 
@@ -329,7 +339,7 @@ bootstrap_analysis_SBS4_survival_optimal_cutoff_all <- function(num_bs) {
     
     cesa_all <- trinuc_mutation_rates(
       cesa_all,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = untreated_exclusions,
       samples = all_filtered$untreated_ids,
@@ -377,7 +387,7 @@ bootstrap_analysis_SBS13_survival_optimal_cutoff_all <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_all <- trinuc_mutation_rates(
       cesa_all,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = all_filtered$treated_ids, 
@@ -386,7 +396,7 @@ bootstrap_analysis_SBS13_survival_optimal_cutoff_all <- function(num_bs) {
     
     cesa_all <- trinuc_mutation_rates(
       cesa_all,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = untreated_exclusions,
       samples = all_filtered$untreated_ids,
@@ -428,7 +438,7 @@ bootstrap_analysis_SBS4_TMB_optimal_cutoff_paper <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_paper <- trinuc_mutation_rates(
       cesa_paper,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = paper_filtered$treated_ids, 
@@ -437,7 +447,7 @@ bootstrap_analysis_SBS4_TMB_optimal_cutoff_paper <- function(num_bs) {
     
     cesa_paper <- trinuc_mutation_rates(
       cesa_paper,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = untreated_exclusions,
       samples = paper_filtered$untreated_ids,
@@ -448,11 +458,12 @@ bootstrap_analysis_SBS4_TMB_optimal_cutoff_paper <- function(num_bs) {
     biological_weights_paper <- cesa_paper$mutational_signatures$biological_weights[group_avg_blended == FALSE]
     
     paper_optimal_cutoff <- biological_weights_paper %>%
-      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) 
+      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) %>%
+      mutate(TMB_per_Mb = total_snvs / exome_mb)
     
     # Compute optimal cutoff using maxstat.test
     SBS4_paper_optimal_cutoff <- maxstat.test(
-      Surv(total_snvs) ~ SBS4, data = paper_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
+      Surv(TMB_per_Mb) ~ SBS4, data = paper_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
     )
     
     # Append to bootstrap samples
@@ -476,7 +487,7 @@ bootstrap_analysis_SBS13_TMB_optimal_cutoff_paper <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_paper <- trinuc_mutation_rates(
       cesa_paper,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = paper_filtered$treated_ids, 
@@ -485,7 +496,7 @@ bootstrap_analysis_SBS13_TMB_optimal_cutoff_paper <- function(num_bs) {
     
     cesa_paper <- trinuc_mutation_rates(
       cesa_paper,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = untreated_exclusions,
       samples = paper_filtered$untreated_ids,
@@ -496,11 +507,12 @@ bootstrap_analysis_SBS13_TMB_optimal_cutoff_paper <- function(num_bs) {
     biological_weights_paper <- cesa_paper$mutational_signatures$biological_weights[group_avg_blended == FALSE]
     
     paper_optimal_cutoff <- biological_weights_paper %>%
-      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) 
+      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) %>%
+      mutate(TMB_per_Mb = total_snvs / exome_mb)
     
     # Compute optimal cutoff using maxstat.test
     SBS13_paper_optimal_cutoff <- maxstat.test(
-      Surv(total_snvs) ~ SBS13, data = paper_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
+      Surv(TMB_per_Mb) ~ SBS13, data = paper_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
     )
     
     # Append to bootstrap samples
@@ -525,7 +537,7 @@ bootstrap_analysis_SBS4_TMB_optimal_cutoff_external <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_external <- trinuc_mutation_rates(
       cesa_external,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = external_filtered$treated_ids, 
@@ -545,11 +557,12 @@ bootstrap_analysis_SBS4_TMB_optimal_cutoff_external <- function(num_bs) {
     biological_weights_external <- cesa_external$mutational_signatures$biological_weights[group_avg_blended == FALSE]
     
     external_optimal_cutoff <- biological_weights_external %>%
-      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) 
+      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) %>%
+      mutate(TMB_per_Mb = total_snvs / exome_mb)
     
     # Compute optimal cutoff using maxstat.test
     SBS4_external_optimal_cutoff <- maxstat.test(
-      Surv(total_snvs) ~ SBS4, data = external_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
+      Surv(TMB_per_Mb) ~ SBS4, data = external_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
     )
     
     # Append to bootstrap samples
@@ -573,7 +586,7 @@ bootstrap_analysis_SBS13_TMB_optimal_cutoff_external <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_external <- trinuc_mutation_rates(
       cesa_external,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = external_filtered$treated_ids, 
@@ -593,11 +606,12 @@ bootstrap_analysis_SBS13_TMB_optimal_cutoff_external <- function(num_bs) {
     biological_weights_external <- cesa_external$mutational_signatures$biological_weights[group_avg_blended == FALSE]
     
     external_optimal_cutoff <- biological_weights_external %>%
-      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) 
+      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) %>%
+      mutate(TMB_per_Mb = total_snvs / exome_mb)
     
     # Compute optimal cutoff using maxstat.test
     SBS13_external_optimal_cutoff <- maxstat.test(
-      Surv(total_snvs) ~ SBS13, data = external_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
+      Surv(TMB_per_Mb) ~ SBS13, data = external_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
     )
     
     # Append to bootstrap samples
@@ -622,7 +636,7 @@ bootstrap_analysis_SBS4_TMB_optimal_cutoff_all <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_all <- trinuc_mutation_rates(
       cesa_all,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = all_filtered$treated_ids, 
@@ -631,7 +645,7 @@ bootstrap_analysis_SBS4_TMB_optimal_cutoff_all <- function(num_bs) {
     
     cesa_all <- trinuc_mutation_rates(
       cesa_all,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = untreated_exclusions,
       samples = all_filtered$untreated_ids,
@@ -642,11 +656,12 @@ bootstrap_analysis_SBS4_TMB_optimal_cutoff_all <- function(num_bs) {
     biological_weights_all <- cesa_all$mutational_signatures$biological_weights[group_avg_blended == FALSE]
     
     all_optimal_cutoff <- biological_weights_all %>%
-      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) 
+      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) %>%
+      mutate(TMB_per_Mb = total_snvs / exome_mb)
     
     # Compute optimal cutoff using maxstat.test
     SBS4_all_optimal_cutoff <- maxstat.test(
-      Surv(total_snvs) ~ SBS4, data = all_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
+      Surv(TMB_per_Mb) ~ SBS4, data = all_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
     )
     
     # Append to bootstrap samples
@@ -670,7 +685,7 @@ bootstrap_analysis_SBS13_TMB_optimal_cutoff_all <- function(num_bs) {
     # Add trinucleotide mutation rates for treated and untreated
     cesa_all <- trinuc_mutation_rates(
       cesa_all,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = treated_exclusions,
       samples = all_filtered$treated_ids, 
@@ -679,7 +694,7 @@ bootstrap_analysis_SBS13_TMB_optimal_cutoff_all <- function(num_bs) {
     
     cesa_all <- trinuc_mutation_rates(
       cesa_all,
-      signature_extractor = "MutationalPatterns",
+      signature_extractor = signature_extractor,
       signature_set = signature_set,
       signature_exclusions = untreated_exclusions,
       samples = all_filtered$untreated_ids,
@@ -690,11 +705,12 @@ bootstrap_analysis_SBS13_TMB_optimal_cutoff_all <- function(num_bs) {
     biological_weights_all <- cesa_all$mutational_signatures$biological_weights[group_avg_blended == FALSE]
     
     all_optimal_cutoff <- biological_weights_all %>%
-      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) 
+      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) %>%
+      mutate(TMB_per_Mb = total_snvs / exome_mb)
     
     # Compute optimal cutoff using maxstat.test
     SBS13_all_optimal_cutoff <- maxstat.test(
-      Surv(total_snvs) ~ SBS13, data = all_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
+      Surv(TMB_per_Mb) ~ SBS13, data = all_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
     )
     
     # Append to bootstrap samples
@@ -721,10 +737,13 @@ SBS13_survival_optimal_cutoff_paper <- bootstrap_analysis_SBS13_survival_optimal
 SBS4_TMB_optimal_cutoff_paper <- bootstrap_analysis_SBS4_TMB_optimal_cutoff_paper(num_bs)
 SBS13_TMB_optimal_cutoff_paper <- bootstrap_analysis_SBS13_TMB_optimal_cutoff_paper(num_bs)
 
-saveRDS(SBS4_survival_optimal_cutoff_paper, file = "SBS4_survival_optimal_cutoff_paper.rds")
-saveRDS(SBS13_survival_optimal_cutoff_paper, file = "SBS13_survival_optimal_cutoff_paper.rds")
-saveRDS(SBS4_TMB_optimal_cutoff_paper, file = "SBS4_TMB_optimal_cutoff_paper.rds")
-saveRDS(SBS13_TMB_optimal_cutoff_paper, file = "SBS13_TMB_optimal_cutoff_paper.rds")
+# MutationalPatterns runs keep legacy filenames; deconstructSigs runs are suffixed
+file_suffix <- if (signature_extractor == "MutationalPatterns") "" else paste0("_", signature_extractor)
+
+saveRDS(SBS4_survival_optimal_cutoff_paper, file = paste0("SBS4_survival_optimal_cutoff_paper",  file_suffix, ".rds"))
+saveRDS(SBS13_survival_optimal_cutoff_paper, file = paste0("SBS13_survival_optimal_cutoff_paper", file_suffix, ".rds"))
+saveRDS(SBS4_TMB_optimal_cutoff_paper,       file = paste0("SBS4_TMB_optimal_cutoff_paper",      file_suffix, ".rds"))
+saveRDS(SBS13_TMB_optimal_cutoff_paper,      file = paste0("SBS13_TMB_optimal_cutoff_paper",     file_suffix, ".rds"))
 
 ## ---------Extra for external and combined
 
