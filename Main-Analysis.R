@@ -2,79 +2,99 @@ setwd("..") # the location the r script will save
 
 # -----Define reference data set and load data into cesa----------
 
-
-# Create cesa object that will include external data 
-cesa_external <- CESAnalysis(refset = "ces.refset.hg19")
-
-
-# Create cesa object that will include only data in the paper
-cesa_paper <- CESAnalysis(refset = "ces.refset.hg19")
-
-# # Create cesa object that will include all data
-cesa_all <- CESAnalysis(refset = "ces.refset.hg19")
-
-
-# Check for duplicate data
-maf_list <- list(dt1 = george_et_al_maf, dt2 = rudin_et_al_maf, dt3 = jiang_et_al_maf, dt4 = zhou_et_al_maf,
-                 dt5 = song_et_al_maf, dt6 = chen_et_al_maf, dt7 = wang_et_al_maf)
-maf_overlap <- check_sample_overlap(maf_list)
-nrow(maf_overlap[variants_shared > 2])
-
-# Load WXS data
-cesa_all <- load_maf(cesa = cesa_all, maf = george_et_al_maf, maf_name = "george_et_al")
-cesa_paper <- load_maf(cesa = cesa_paper, maf = george_et_al_maf, maf_name = "george_et_al")
-
-cesa_all <- load_sample_data(cesa_all, george_et_al_clinical)
-cesa_paper <- load_sample_data(cesa_paper, george_et_al_clinical)
-
-cesa_all <- load_maf(cesa = cesa_all, maf = rudin_et_al_maf, maf_name = "rudin_et_al")
-cesa_paper <- load_maf(cesa = cesa_paper, maf = rudin_et_al_maf, maf_name = "rudin_et_al")
-
-# External data
-cesa_external <- load_maf(cesa = cesa_external, maf = zhou_et_al_maf, maf_name = "zhou_et_al")
-cesa_external <- load_sample_data(cesa_external, zhou_et_al_clinical)
-
-cesa_external <- load_maf(cesa = cesa_external, maf = jiang_et_al_maf, maf_name = "jiang_et_al")
-cesa_external <- load_sample_data(cesa_external, jiang_et_al_clinical)
-
-cesa_all <- load_maf(cesa = cesa_all, maf = zhou_et_al_maf, maf_name = "zhou_et_al")
-cesa_all <- load_sample_data(cesa_all, zhou_et_al_clinical)
-
-cesa_all <- load_maf(cesa = cesa_all, maf = jiang_et_al_maf, maf_name = "jiang_et_al")
-cesa_all <- load_sample_data(cesa_all, jiang_et_al_clinical)
-
-cesa_external <- load_maf(cesa = cesa_external, maf = song_et_al_maf, maf_name = "song_et_al")
-cesa_external <- load_sample_data(cesa_external, song_et_al_clinical)
-
-cesa_all <- load_maf(cesa = cesa_all, maf = song_et_al_maf, maf_name = "song_et_al")
-cesa_all <- load_sample_data(cesa_all, song_et_al_clinical)
-
-cesa_external <- load_maf(cesa = cesa_external, maf = chen_et_al_maf, maf_name = "chen_et_al")
-cesa_external <- load_sample_data(cesa_external, chen_et_al_clinical)
-
-cesa_all <- load_maf(cesa = cesa_all, maf = chen_et_al_maf, maf_name = "chen_et_al")
-cesa_all <- load_sample_data(cesa_all, chen_et_al_clinical)
-
-cesa_external <- load_maf(cesa = cesa_external, maf = wang_et_al_maf, maf_name = "wang_et_al")
-cesa_all <- load_maf(cesa = cesa_all, maf = wang_et_al_maf, maf_name = "wang_et_al")
+# Peform standard CES analysis for MutationalPatterns and deconstructSigs
+extractor <- "MutationalPatterns"
+if (FALSE){
+  # Create cesa object that will include external data 
+  cesa_external <- CESAnalysis(refset = "ces.refset.hg19")
+  
+  
+  # Create cesa object that will include only data in the paper
+  cesa_paper <- CESAnalysis(refset = "ces.refset.hg19")
+  
+  # Check for duplicate data
+  maf_list <- list(dt1 = george_et_al_maf, dt2 = rudin_et_al_maf, dt3 = jiang_et_al_maf, dt4 = zhou_et_al_maf,
+                   dt5 = song_et_al_maf, dt6 = chen_et_al_maf, dt7 = wang_et_al_maf)
+  maf_overlap <- check_sample_overlap(maf_list)
+  nrow(maf_overlap[variants_shared > 2])
+  
+  # Load WXS data
+  
+  cesa_paper <- load_maf(cesa = cesa_paper, maf = george_et_al_maf, maf_name = "george_et_al")
+  
+  cesa_paper <- load_sample_data(cesa_paper, george_et_al_clinical)
+  
+  cesa_paper <- load_maf(cesa = cesa_paper, maf = rudin_et_al_maf, maf_name = "rudin_et_al")
+  
+  # External data
+  cesa_external <- load_maf(cesa = cesa_external, maf = zhou_et_al_maf, maf_name = "zhou_et_al")
+  cesa_external <- load_sample_data(cesa_external, zhou_et_al_clinical)
+  
+  cesa_external <- load_maf(cesa = cesa_external, maf = jiang_et_al_maf, maf_name = "jiang_et_al")
+  cesa_external <- load_sample_data(cesa_external, jiang_et_al_clinical)
+  
+  
+  cesa_external <- load_maf(cesa = cesa_external, maf = song_et_al_maf, maf_name = "song_et_al")
+  cesa_external <- load_sample_data(cesa_external, song_et_al_clinical)
+  
+  
+  cesa_external <- load_maf(cesa = cesa_external, maf = chen_et_al_maf, maf_name = "chen_et_al")
+  cesa_external <- load_sample_data(cesa_external, chen_et_al_clinical)
+  
+  
+  cesa_external <- load_maf(cesa = cesa_external, maf = wang_et_al_maf, maf_name = "wang_et_al")
+  
+  # # Create cesa object that will include all data
+  cesa_all <- CESAnalysis(refset = "ces.refset.hg19")
+  
+  cesa_all <- load_maf(cesa = cesa_all, maf = george_et_al_maf, maf_name = "george_et_al")
+  cesa_all <- load_sample_data(cesa_all, george_et_al_clinical)
+  
+  cesa_all <- load_maf(cesa = cesa_all, maf = rudin_et_al_maf, maf_name = "rudin_et_al")
+  
+  cesa_all <- load_maf(cesa = cesa_all, maf = zhou_et_al_maf, maf_name = "zhou_et_al")
+  cesa_all <- load_sample_data(cesa_all, zhou_et_al_clinical)
+  
+  cesa_all <- load_maf(cesa = cesa_all, maf = jiang_et_al_maf, maf_name = "jiang_et_al")
+  cesa_all <- load_sample_data(cesa_all, jiang_et_al_clinical)
+  
+  cesa_all <- load_maf(cesa = cesa_all, maf = song_et_al_maf, maf_name = "song_et_al")
+  cesa_all <- load_sample_data(cesa_all, song_et_al_clinical)
+  
+  cesa_all <- load_maf(cesa = cesa_all, maf = chen_et_al_maf, maf_name = "chen_et_al")
+  cesa_all <- load_sample_data(cesa_all, chen_et_al_clinical)
+  
+  cesa_all <- load_maf(cesa = cesa_all, maf = wang_et_al_maf, maf_name = "wang_et_al")
+  
+  # Assign COSMIC Mutational Signatures
+  
+  # Define signature exclusions and use reference-based assignment (either "MutationalPatterns" or "deconstructSigs") to assign mutational signatures
+  assign_mutational_signatures(extractor)
+  
+  # Use dNdScv to find gene-level baseline mutation rates
+  
+  #Calculate gene_mutation_rates
+  cesa_paper <- gene_mutation_rates(cesa_paper, covariates = ces.refset.hg19$covariates$lung)
+  
+  cesa_external <- gene_mutation_rates(cesa_external, covariates = ces.refset.hg19$covariates$lung)
+  
+  # The following will find the variant cancer-effect of  every single variant with a MAF frequency >1
+  cesa_external <- ces_variant(cesa = cesa_external, run_name = "recurrent_external")
+  cesa_paper <- ces_variant(cesa = cesa_paper, run_name = "recurrent_paper")
+  
+  save_cesa(cesa_external, paste0("cesa_external_", extractor,".rds"))
+  save_cesa(cesa_paper, paste0("cesa_paper_", extractor,".rds"))
+  save_cesa(cesa_all, "cesa_all.rds")
+}
+cesa_external <- readRDS(paste0("cesa_external_", extractor,".rds"))
+cesa_paper <- readRDS(paste0("cesa_paper_", extractor,".rds"))
+cesa_all <- readRDS("cesa_all.rds")
 
 # Summarize the amount of clinical and genomic data loaded in analysis
 
 data_summary <- summarize_maf_sources(cesa_all)
 
-
-save_cesa(cesa_external, "cesa_external.rds")
-# cesa_external <- readRDS("cesa_external.rds")
-save_cesa(cesa_paper, "cesa_paper_new.rds")
-# cesa_paper <- readRDS("cesa_paper_new.rds")
-save_cesa(cesa_all, "cesa_all.rds")
-# cesa_all <- readRDS("cesa_all.rds")
-
-# ---------------Assign COSMIC Mutational Signatures---------------------
-
-# Define signature exclusions and use reference-based assignment (either "MutationalPatterns" or "deconstructSigs") to assign mutational signatures
-assign_mutational_signatures("MutationalPatterns")
-
+# Extract mutational signature activites
 biological_weights_paper <- cesa_paper$mutational_signatures$biological_weights[group_avg_blended==FALSE]
 biological_weights_external <- cesa_external$mutational_signatures$biological_weights[group_avg_blended==FALSE]
 
@@ -126,27 +146,12 @@ biological_weights_external[, TMB_per_Mb := total_snvs / exome_mb]
 #   smethod = "LogRank", pmethod = "HL"
 # )
 
-# --------Use dNdScv to find gene-level baseline mutation rates----------
-# ---------------and estimate gene-level cancer effect-------------------
-
-
-#Calculate gene_mutation_rates
-cesa_paper <- gene_mutation_rates(cesa_paper, covariates = ces.refset.hg19$covariates$lung)
-
-cesa_external <- gene_mutation_rates(cesa_external, covariates = ces.refset.hg19$covariates$lung)
-
 # Store top dNdScv genes, sorted by significance
 dndscv_results_paper <- cesa_paper$dNdScv_results$rate_grp_1
 sig_genes_paper <- dndscv_results_paper[dndscv_results_paper$qallsubs_cv < 0.05, ]
 
 dndscv_results_external <- cesa_external$dNdScv_results$rate_grp_1
 sig_genes_external <- dndscv_results_external[dndscv_results_external$qallsubs_cv < 0.05, ]
-
-#--------Find the variant cancer-effect of defined variant lists--------
-
-# The following will include every single variant with a MAF frequency >1
-cesa_external <- ces_variant(cesa = cesa_external, run_name = "recurrent_external")
-cesa_paper <- ces_variant(cesa = cesa_paper, run_name = "recurrent_paper")
 
 ## -------------------- Effect sizes attributed to signatures -----
 
