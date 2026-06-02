@@ -24,6 +24,7 @@ library(riskRegression)
 library(rms)
 library(lmtest)
 library(openxlsx2)
+library(ggpubr)
 
 
 setwd("files")
@@ -402,7 +403,7 @@ wang_et_al_maf <- preload_maf(maf = wang_et_al, refset = "ces.refset.hg19", tumo
 
 ## Clinical Data Unavailable
 
-## Liu et al., 2024 (Cell)
+## Liu et al., 2024 (Cell) -> download supplementary table S1 from doi.org/10.1016/j.cell.2023.12.004
 
 if (!file.exists("liu_et_al_wxs_wb.rds") || !file.exists("liu_et_al_clinical_wb.rds")) {
   liu_et_al <- wb_load("liu_et_al_2024_tableS1.xlsb")
@@ -427,7 +428,7 @@ liu_et_al <- liu_et_al_wxs_df %>%
   filter(!is.na(Hugo_Symbol), !is.na(Start_Position)) %>% dplyr::select(!Genome_Change)
 
 liu_et_al_maf <- preload_maf(maf = liu_et_al, refset = "ces.refset.hg19",
-                              chain_file = "hg38ToHg19.over.chain",
+                              chain_file = "hg38ToHg19.over.chain", # chain file can be obtained from UCSC (hgdownload.soe.ucsc.edu/goldenPath/hg38/liftOver/)
                               tumor_allele_col = "Tumor_Seq_Allele2",
                               keep_extra_columns = maf_format)
 
