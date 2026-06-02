@@ -210,17 +210,17 @@ ggsave("supp_fig_2.png", plot = SuppFig2, width = 10.5, height = 7)
 sfig3a <- SBS13_results$george_et_al$plot_0.25
 sfig3a$plot <- sfig3a$plot +
   ggtitle(NULL) + theme(legend.title = element_blank())
-panel_s3a <- plot_grid(sfig2b$plot, sfig2b$table, ncol = 1, align = "v", rel_heights = c(9, 3), labels = c("A", ""),  label_y = 0.96)
+panel_s3a <- plot_grid(sfig3a$plot, sfig3a$table, ncol = 1, align = "v", rel_heights = c(9, 3), labels = c("A", ""),  label_y = 0.96)
 
 sfig3b <- SBS13_results$liu_et_al$plot_0.25
 sfig3b$plot <- sfig3b$plot +
   ggtitle(NULL) + theme(legend.title = element_blank())
-panel_s3b <- plot_grid(sfig2d$plot, sfig2d$table, ncol = 1, align = "v", rel_heights = c(9, 3), labels = c("B", ""),  label_y = 0.96)
+panel_s3b <- plot_grid(sfig3b$plot, sfig3b$table, ncol = 1, align = "v", rel_heights = c(9, 3), labels = c("B", ""),  label_y = 0.96)
 
 sfig3c <- SBS13_results$zhou_et_al$plot_0.25
 sfig3c$plot <- sfig3c$plot +
   ggtitle(NULL) + theme(legend.title = element_blank())
-panel_s3c <- plot_grid(sfig2e$plot, sfig2e$table, ncol = 1, align = "v", rel_heights = c(9, 3), labels = c("C", ""),  label_y = 0.96)
+panel_s3c <- plot_grid(sfig3c$plot, sfig3c$table, ncol = 1, align = "v", rel_heights = c(9, 3), labels = c("C", ""),  label_y = 0.96)
 
 SuppFig3 <- plot_grid(panel_s3a,panel_s3b,panel_s3c, nrow = 2, ncol = 2, align = "v")
 
