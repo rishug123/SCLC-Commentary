@@ -154,220 +154,222 @@ assign_mutational_signatures <- function(signature_extractor_type) {
 }
 
 # Determine the optimal binary for signature presence
-
-bootstrap_analysis_SBS4_survival_optimal_cutoff_paper <- function(num_bs) {
-  bs_samples <- c()
-  
-  for (i in 1:num_bs) {
-    
-    # Filter clinical data
-    clinical_data_paper <- cesa_paper$samples %>%
-      filter(!is.na(`Status.(at.time.of.last.follow-up)`),
-             !is.na(`overall_survival.(months)`)) %>%
-      mutate(status_numeric = ifelse(`Status.(at.time.of.last.follow-up)` == "dead", 1, 0)) %>%
-      select(Unique_Patient_Identifier, status_numeric, `overall_survival.(months)`)
-    
-    # Filter samples
-    paper_filtered <- filter_treated_untreated_with_maf(cesa_paper$samples, cesa_paper$maf)
-    signature_set <- modified_signature_set
-    
-    # Add trinucleotide mutation rates for treated and untreated
-    cesa_paper <- trinuc_mutation_rates(
-      cesa_paper,
-      signature_extractor = "MutationalPatterns",
-      signature_set = signature_set,
-      signature_exclusions = treated_exclusions,
-      samples = paper_filtered$treated_ids, 
-      bootstrap_mutations = TRUE
-    )
-    
-    cesa_paper <- trinuc_mutation_rates(
-      cesa_paper,
-      signature_extractor = "MutationalPatterns",
-      signature_set = signature_set,
-      signature_exclusions = untreated_exclusions,
-      samples = paper_filtered$untreated_ids,
-      bootstrap_mutations = TRUE
-    )
-    
-    # Extract signature weights
-    biological_weights_paper <- cesa_paper$mutational_signatures$biological_weights[group_avg_blended == FALSE]
-    
-    # Merge clinical and signature data
-    paper_optimal_cutoff <- biological_weights_paper %>%
-      select(Unique_Patient_Identifier, SBS4, SBS13) %>%
-      inner_join(clinical_data_paper, by = "Unique_Patient_Identifier")
-    
-    # Compute optimal cutoff using maxstat.test
-    SBS4_paper_optimal_cutoff <- maxstat.test(
-      Surv(`overall_survival.(months)`, status_numeric) ~ SBS4, data = paper_optimal_cutoff, smethod = "LogRank", 
-      pmethod = "HL", minprop = 0.01
-    )
-    
-    # Append to bootstrap samples
-    bs_samples <- c(bs_samples, SBS4_paper_optimal_cutoff$estimate)
-    
-    cesa_paper <- clear_trinuc_rates_and_signatures(cesa_paper)
-  }
-  
-  # Compute mean of bootstrap estimates
-  return(list(bs_samples, mean(bs_samples)))
-}
-bootstrap_analysis_SBS13_survival_optimal_cutoff_paper <- function(num_bs) {
-  bs_samples <- c()
-  
-  for (i in 1:num_bs) {
-    
-    # Filter clinical data
-    clinical_data_paper <- cesa_paper$samples %>%
-      filter(!is.na(`Status.(at.time.of.last.follow-up)`),
-             !is.na(`overall_survival.(months)`)) %>%
-      mutate(status_numeric = ifelse(`Status.(at.time.of.last.follow-up)` == "dead", 1, 0)) %>%
-      select(Unique_Patient_Identifier, status_numeric, `overall_survival.(months)`)
-    
-    # Filter samples
-    paper_filtered <- filter_treated_untreated_with_maf(cesa_paper$samples, cesa_paper$maf)
-    signature_set <- modified_signature_set
-    
-    # Add trinucleotide mutation rates for treated and untreated
-    cesa_paper <- trinuc_mutation_rates(
-      cesa_paper,
-      signature_extractor = "MutationalPatterns",
-      signature_set = signature_set,
-      signature_exclusions = treated_exclusions,
-      samples = paper_filtered$treated_ids, 
-      bootstrap_mutations = TRUE
-    )
-    
-    cesa_paper <- trinuc_mutation_rates(
-      cesa_paper,
-      signature_extractor = "MutationalPatterns",
-      signature_set = signature_set,
-      signature_exclusions = untreated_exclusions,
-      samples = paper_filtered$untreated_ids,
-      bootstrap_mutations = TRUE
-    )
-    
-    # Extract signature weights
-    biological_weights_paper <- cesa_paper$mutational_signatures$biological_weights[group_avg_blended == FALSE]
-    
-    # Merge clinical and signature data
-    paper_optimal_cutoff <- biological_weights_paper %>%
-      select(Unique_Patient_Identifier, SBS4, SBS13) %>%
-      inner_join(clinical_data_paper, by = "Unique_Patient_Identifier")
-    
-    # Compute optimal cutoff using maxstat.test
-    SBS13_paper_optimal_cutoff <- maxstat.test(
-      Surv(`overall_survival.(months)`, status_numeric) ~ SBS13, data = paper_optimal_cutoff, smethod = "LogRank", 
-      pmethod = "HL", minprop = 0.01
-    )
-    
-    # Append to bootstrap samples
-    bs_samples <- c(bs_samples, SBS13_paper_optimal_cutoff$estimate)
-    
-    cesa_paper <- clear_trinuc_rates_and_signatures(cesa_paper)
-  }
-  
-  # Compute mean of bootstrap estimates
-  return(list(bs_samples, mean(bs_samples)))
-}
-
-bootstrap_analysis_SBS4_TMB_optimal_cutoff_paper <- function(num_bs) {
-  bs_samples <- c()
-  
-  for (i in 1:num_bs) {
-    
-    # Filter samples
-    paper_filtered <- filter_treated_untreated_with_maf(cesa_paper$samples, cesa_paper$maf)
-    signature_set <- modified_signature_set
-    
-    # Add trinucleotide mutation rates for treated and untreated
-    cesa_paper <- trinuc_mutation_rates(
-      cesa_paper,
-      signature_extractor = "MutationalPatterns",
-      signature_set = signature_set,
-      signature_exclusions = treated_exclusions,
-      samples = paper_filtered$treated_ids, 
-      bootstrap_mutations = TRUE
-    )
-    
-    cesa_paper <- trinuc_mutation_rates(
-      cesa_paper,
-      signature_extractor = "MutationalPatterns",
-      signature_set = signature_set,
-      signature_exclusions = untreated_exclusions,
-      samples = paper_filtered$untreated_ids,
-      bootstrap_mutations = TRUE
-    )
-    
-    # Extract signature weights
-    biological_weights_paper <- cesa_paper$mutational_signatures$biological_weights[group_avg_blended == FALSE]
-    
-    paper_optimal_cutoff <- biological_weights_paper %>%
-      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) 
-    
-    # Compute optimal cutoff using maxstat.test
-    SBS4_paper_optimal_cutoff <- maxstat.test(
-      Surv(total_snvs) ~ SBS4, data = paper_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
-    )
-    
-    # Append to bootstrap samples
-    bs_samples <- c(bs_samples, SBS4_paper_optimal_cutoff$estimate)
-    
-    cesa_paper <- clear_trinuc_rates_and_signatures(cesa_paper)
-  }
-  
-  # Compute mean of bootstrap estimates
-  return(list(bs_samples, mean(bs_samples)))
-}
-bootstrap_analysis_SBS13_TMB_optimal_cutoff_paper <- function(num_bs) {
-  bs_samples <- c()
-  
-  for (i in 1:num_bs) {
-    
-    # Filter samples
-    paper_filtered <- filter_treated_untreated_with_maf(cesa_paper$samples, cesa_paper$maf)
-    signature_set <- modified_signature_set
-    
-    # Add trinucleotide mutation rates for treated and untreated
-    cesa_paper <- trinuc_mutation_rates(
-      cesa_paper,
-      signature_extractor = "MutationalPatterns",
-      signature_set = signature_set,
-      signature_exclusions = treated_exclusions,
-      samples = paper_filtered$treated_ids, 
-      bootstrap_mutations = TRUE
-    )
-    
-    cesa_paper <- trinuc_mutation_rates(
-      cesa_paper,
-      signature_extractor = "MutationalPatterns",
-      signature_set = signature_set,
-      signature_exclusions = untreated_exclusions,
-      samples = paper_filtered$untreated_ids,
-      bootstrap_mutations = TRUE
-    )
-    
-    # Extract signature weights
-    biological_weights_paper <- cesa_paper$mutational_signatures$biological_weights[group_avg_blended == FALSE]
-    
-    paper_optimal_cutoff <- biological_weights_paper %>%
-      select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) 
-    
-    # Compute optimal cutoff using maxstat.test
-    SBS13_paper_optimal_cutoff <- maxstat.test(
-      Surv(total_snvs) ~ SBS13, data = paper_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
-    )
-    
-    # Append to bootstrap samples
-    bs_samples <- c(bs_samples, SBS13_paper_optimal_cutoff$estimate)
-    
-    cesa_paper <- clear_trinuc_rates_and_signatures(cesa_paper)
-  }
-  
-  # Compute mean of bootstrap estimates
-  return(list(bs_samples, mean(bs_samples)))
-}
+# 
+# bootstrap_analysis_SBS4_survival_optimal_cutoff_paper <- function(num_bs) {
+#   bs_samples <- c()
+#   
+#   for (i in 1:num_bs) {
+#     
+#     # Filter clinical data
+#     clinical_data_paper <- cesa_paper$samples %>%
+#       filter(!is.na(`Status.(at.time.of.last.follow-up)`),
+#              !is.na(`overall_survival.(months)`)) %>%
+#       mutate(status_numeric = ifelse(`Status.(at.time.of.last.follow-up)` == "dead", 1, 0)) %>%
+#       select(Unique_Patient_Identifier, status_numeric, `overall_survival.(months)`)
+#     
+#     # Filter samples
+#     paper_filtered <- filter_treated_untreated_with_maf(cesa_paper$samples, cesa_paper$maf)
+#     signature_set <- modified_signature_set
+#     
+#     # Add trinucleotide mutation rates for treated and untreated
+#     cesa_paper <- trinuc_mutation_rates(
+#       cesa_paper,
+#       signature_extractor = "MutationalPatterns",
+#       signature_set = signature_set,
+#       signature_exclusions = treated_exclusions,
+#       samples = paper_filtered$treated_ids, 
+#       bootstrap_mutations = TRUE
+#     )
+#     
+#     cesa_paper <- trinuc_mutation_rates(
+#       cesa_paper,
+#       signature_extractor = "MutationalPatterns",
+#       signature_set = signature_set,
+#       signature_exclusions = untreated_exclusions,
+#       samples = paper_filtered$untreated_ids,
+#       bootstrap_mutations = TRUE
+#     )
+#     
+#     # Extract signature weights
+#     biological_weights_paper <- cesa_paper$mutational_signatures$biological_weights[group_avg_blended == FALSE]
+#     
+#     # Merge clinical and signature data
+#     paper_optimal_cutoff <- biological_weights_paper %>%
+#       select(Unique_Patient_Identifier, SBS4, SBS13) %>%
+#       inner_join(clinical_data_paper, by = "Unique_Patient_Identifier")
+#     
+#     # Compute optimal cutoff using maxstat.test
+#     SBS4_paper_optimal_cutoff <- maxstat.test(
+#       Surv(`overall_survival.(months)`, status_numeric) ~ SBS4, data = paper_optimal_cutoff, smethod = "LogRank", 
+#       pmethod = "HL", minprop = 0.01
+#     )
+#     
+#     # Append to bootstrap samples
+#     bs_samples <- c(bs_samples, SBS4_paper_optimal_cutoff$estimate)
+#     
+#     cesa_paper <- clear_trinuc_rates_and_signatures(cesa_paper)
+#   }
+#   
+#   # Compute mean of bootstrap estimates
+#   return(list(bs_samples, mean(bs_samples)))
+# }
+# bootstrap_analysis_SBS13_survival_optimal_cutoff_paper <- function(num_bs) {
+#   bs_samples <- c()
+#   
+#   for (i in 1:num_bs) {
+#     
+#     # Filter clinical data
+#     clinical_data_paper <- cesa_paper$samples %>%
+#       filter(!is.na(`Status.(at.time.of.last.follow-up)`),
+#              !is.na(`overall_survival.(months)`)) %>%
+#       mutate(status_numeric = ifelse(`Status.(at.time.of.last.follow-up)` == "dead", 1, 0)) %>%
+#       select(Unique_Patient_Identifier, status_numeric, `overall_survival.(months)`)
+#     
+#     # Filter samples
+#     paper_filtered <- filter_treated_untreated_with_maf(cesa_paper$samples, cesa_paper$maf)
+#     signature_set <- modified_signature_set
+#     
+#     # Add trinucleotide mutation rates for treated and untreated
+#     cesa_paper <- trinuc_mutation_rates(
+#       cesa_paper,
+#       signature_extractor = "MutationalPatterns",
+#       signature_set = signature_set,
+#       signature_exclusions = treated_exclusions,
+#       samples = paper_filtered$treated_ids, 
+#       bootstrap_mutations = TRUE
+#     )
+#     
+#     cesa_paper <- trinuc_mutation_rates(
+#       cesa_paper,
+#       signature_extractor = "MutationalPatterns",
+#       signature_set = signature_set,
+#       signature_exclusions = untreated_exclusions,
+#       samples = paper_filtered$untreated_ids,
+#       bootstrap_mutations = TRUE
+#     )
+#     
+#     # Extract signature weights
+#     biological_weights_paper <- cesa_paper$mutational_signatures$biological_weights[group_avg_blended == FALSE]
+#     
+#     # Merge clinical and signature data
+#     paper_optimal_cutoff <- biological_weights_paper %>%
+#       select(Unique_Patient_Identifier, SBS4, SBS13) %>%
+#       inner_join(clinical_data_paper, by = "Unique_Patient_Identifier")
+#     
+#     # Compute optimal cutoff using maxstat.test
+#     SBS13_paper_optimal_cutoff <- maxstat.test(
+#       Surv(`overall_survival.(months)`, status_numeric) ~ SBS13, data = paper_optimal_cutoff, smethod = "LogRank", 
+#       pmethod = "HL", minprop = 0.01
+#     )
+#     
+#     # Append to bootstrap samples
+#     bs_samples <- c(bs_samples, SBS13_paper_optimal_cutoff$estimate)
+#     
+#     cesa_paper <- clear_trinuc_rates_and_signatures(cesa_paper)
+#   }
+#   
+#   # Compute mean of bootstrap estimates
+#   return(list(bs_samples, mean(bs_samples)))
+# }
+# 
+# bootstrap_analysis_SBS4_TMB_optimal_cutoff_paper <- function(num_bs) {
+#   bs_samples <- c()
+#   
+#   for (i in 1:num_bs) {
+#     
+#     # Filter samples
+#     paper_filtered <- filter_treated_untreated_with_maf(cesa_paper$samples, cesa_paper$maf)
+#     signature_set <- modified_signature_set
+#     
+#     # Add trinucleotide mutation rates for treated and untreated
+#     cesa_paper <- trinuc_mutation_rates(
+#       cesa_paper,
+#       signature_extractor = "MutationalPatterns",
+#       signature_set = signature_set,
+#       signature_exclusions = treated_exclusions,
+#       samples = paper_filtered$treated_ids, 
+#       bootstrap_mutations = TRUE
+#     )
+#     
+#     cesa_paper <- trinuc_mutation_rates(
+#       cesa_paper,
+#       signature_extractor = "MutationalPatterns",
+#       signature_set = signature_set,
+#       signature_exclusions = untreated_exclusions,
+#       samples = paper_filtered$untreated_ids,
+#       bootstrap_mutations = TRUE
+#     )
+#     
+#     # Extract signature weights
+#     biological_weights_paper <- cesa_paper$mutational_signatures$biological_weights[group_avg_blended == FALSE]
+#     
+#     paper_optimal_cutoff <- biological_weights_paper %>%
+#       select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) %>%
+#       mutate(TMB_per_Mb = total_snvs / 38)
+#     
+#     # Compute optimal cutoff using maxstat.test
+#     SBS4_paper_optimal_cutoff <- maxstat.test(
+#       Surv(TMB_per_Mb) ~ SBS4, data = paper_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
+#     )
+#     
+#     # Append to bootstrap samples
+#     bs_samples <- c(bs_samples, SBS4_paper_optimal_cutoff$estimate)
+#     
+#     cesa_paper <- clear_trinuc_rates_and_signatures(cesa_paper)
+#   }
+#   
+#   # Compute mean of bootstrap estimates
+#   return(list(bs_samples, mean(bs_samples)))
+# }
+# bootstrap_analysis_SBS13_TMB_optimal_cutoff_paper <- function(num_bs) {
+#   bs_samples <- c()
+#   
+#   for (i in 1:num_bs) {
+#     
+#     # Filter samples
+#     paper_filtered <- filter_treated_untreated_with_maf(cesa_paper$samples, cesa_paper$maf)
+#     signature_set <- modified_signature_set
+#     
+#     # Add trinucleotide mutation rates for treated and untreated
+#     cesa_paper <- trinuc_mutation_rates(
+#       cesa_paper,
+#       signature_extractor = "MutationalPatterns",
+#       signature_set = signature_set,
+#       signature_exclusions = treated_exclusions,
+#       samples = paper_filtered$treated_ids, 
+#       bootstrap_mutations = TRUE
+#     )
+#     
+#     cesa_paper <- trinuc_mutation_rates(
+#       cesa_paper,
+#       signature_extractor = "MutationalPatterns",
+#       signature_set = signature_set,
+#       signature_exclusions = untreated_exclusions,
+#       samples = paper_filtered$untreated_ids,
+#       bootstrap_mutations = TRUE
+#     )
+#     
+#     # Extract signature weights
+#     biological_weights_paper <- cesa_paper$mutational_signatures$biological_weights[group_avg_blended == FALSE]
+#     
+#     paper_optimal_cutoff <- biological_weights_paper %>%
+#       select(Unique_Patient_Identifier, total_snvs, SBS4, SBS13) %>%
+#       mutate(TMB_per_Mb = total_snvs / 38)
+#     
+#     # Compute optimal cutoff using maxstat.test
+#     SBS13_paper_optimal_cutoff <- maxstat.test(
+#       Surv(TMB_per_Mb) ~ SBS13, data = paper_optimal_cutoff, smethod = "LogRank", pmethod = "HL", minprop = 0.01
+#     )
+#     
+#     # Append to bootstrap samples
+#     bs_samples <- c(bs_samples, SBS13_paper_optimal_cutoff$estimate)
+#     
+#     cesa_paper <- clear_trinuc_rates_and_signatures(cesa_paper)
+#   }
+#   
+#   # Compute mean of bootstrap estimates
+#   return(list(bs_samples, mean(bs_samples)))
+# }
 
 plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label, p_value = TRUE) {
   font <- 12
@@ -390,7 +392,7 @@ plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label, p_value 
   low_count  <- ifelse(low_label %in% names(group_counts), group_counts[low_label], 0)
   
   # Calculate Wilcoxon p-value
-  p_val <- wilcox.test(total_snvs ~ x_group, data = data)$p.val
+  p_val <- wilcox.test(TMB_per_Mb ~ x_group, data = data)$p.val
   if (p_val > 0.01){
     p_label <- paste0("italic(P) == ", signif(p_val, num_digits_after_decimal))
   } else{
@@ -416,19 +418,19 @@ plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label, p_value 
   # Step 4: Create the base plot with corrected legend title
   base_plot <- ggboxplot(data,
                          x = "x_group",
-                         y = "total_snvs",
+                         y = "TMB_per_Mb",
                          color = "color_group",
                          palette = c("red", "blue"),
                          add = "jitter") +
-    
+
     scale_y_continuous(
       trans = "log10",
-      limits = c(10^0, 10^3),
-      breaks = 10^seq(1, 5, by = 1),
+      limits = c(10^-2, 10^2),
+      breaks = 10^seq(-2, 2, by = 1),
       labels = function(x) parse(text = paste0("10^", log10(x)))
     ) +
-    
-    ylab("TMB") +
+
+    ylab("TMB (mutations/Mb)") +
     xlab(paste0(signature_col, " signature status")) +
     
     theme_bw() +
@@ -450,8 +452,8 @@ plot_TMB_binary_boxplot <- function(data, signature_col, cutoff, label, p_value 
                                 title.position = "top",
                                 title.hjust = 0.5))
   if (p_value == TRUE) {
-    base_plot <- base_plot + annotate("text", x = 1.5, y = 10^0.75, label = p_label,
-                                      parse = TRUE, size = font / 2.845) 
+    base_plot <- base_plot + annotate("text", x = 1.5, y = 10^-1.25, label = p_label,
+                                      parse = TRUE, size = font / 2.845)
   }
   
   return(base_plot)
@@ -471,7 +473,7 @@ compute_TMB_group_summary <- function(data, signature_col, cutoff) {
   n_high <- ifelse("High" %in% names(group_counts), group_counts["High"], 0)
   
   # Wilcoxon test with Hodges-Lehmann estimate
-  wt <- wilcox.test(total_snvs ~ x_group, data = data, conf.int = TRUE, conf.level = 0.95)
+  wt <- wilcox.test(TMB_per_Mb ~ x_group, data = data, conf.int = TRUE, conf.level = 0.95)
   
   # Format in scientific notation with 2 significant figures
   wilcox_p_sci <- formatC(wt$p.value, format = "e", digits = 2)
@@ -494,7 +496,7 @@ compute_TMB_group_summary <- function(data, signature_col, cutoff) {
   return(summary_table)
 }
 
-plot_TMB_linear_regression <- function(biological_weights_table, dataset, signature, cutoff_SBS4 = SBS4_survival_optimal_cutoff_paper_mean, cutoff_SBS13 = SBS13_survival_optimal_cutoff_paper_mean) {
+plot_TMB_linear_regression <- function(biological_weights_table, dataset, signature) {
   
   font <- 12 # Master font size
   num_digits_after_decimal <- 2
@@ -504,14 +506,14 @@ plot_TMB_linear_regression <- function(biological_weights_table, dataset, signat
     data.table(
       Signature = paste0(sig, " (n=", nrow(biological_weights_table), ")"),
       Proportion_Signature = biological_weights_table[[sig]],
-      log10_TMB = log10(biological_weights_table$total_snvs)
+      log10_TMB = log10(biological_weights_table$TMB_per_Mb)
     )
   }
   
   table <- make_table(signature)
   
   # Plot builder
-  build_plot <- function(data, sig_name, color, cutoff = NA, xmax = 0.8){
+  build_plot <- function(data, sig_name, color, xmax = 0.8){
     
     model <- lm(log10_TMB ~ Proportion_Signature, data = data)
     coefs <- coef(model)
@@ -541,17 +543,17 @@ plot_TMB_linear_regression <- function(biological_weights_table, dataset, signat
       geom_point(size = 1.5, color = color) +
       geom_smooth(method = "lm", se = FALSE, color = color, size = 0.5) +
       scale_y_continuous(
-        limits = c(1, 3),
-        breaks = 1:3,
+        limits = c(-1, 2),
+        breaks = -1:2,
         labels = scales::math_format(10^.x)
       ) +
       xlim(0, xmax) +
-      labs(x = paste0(sig_name, " signature activity"), y = "TMB") +
-      annotate("text", x = xmax, y = 1.5, label = eqn_string, parse = TRUE,
+      labs(x = paste0(sig_name, " signature activity"), y = "TMB (mutations/Mb)") +
+      annotate("text", x = xmax, y = -0.5, label = eqn_string, parse = TRUE,
                hjust = 1.05, vjust = 0, size = font / 4, color = color) +
-      annotate("text", x = xmax, y = 1.3, label = r2_string, parse = TRUE,
+      annotate("text", x = xmax, y = -0.7, label = r2_string, parse = TRUE,
                hjust = 1.05, vjust = 0, size = font / 4, color = color) +
-      annotate("text", x = xmax, y = 1.1, label = p_label, parse = TRUE,
+      annotate("text", x = xmax, y = -0.9, label = p_label, parse = TRUE,
                hjust = 1.05, vjust = 0, size = font / 4, color = color) +
       theme_bw(base_size = font) +
       theme(
@@ -560,7 +562,7 @@ plot_TMB_linear_regression <- function(biological_weights_table, dataset, signat
         axis.text = element_text(size = font * 0.8),
         axis.title = element_text(size = font),
         plot.title = element_blank()
-      ) #   + { if (!is.na(cutoff)) geom_vline(xintercept = cutoff, linetype = "dashed", color = color) else NULL } 
+      ) 
     }
   
   # Pick xmax dynamically
@@ -576,19 +578,18 @@ plot_TMB_linear_regression <- function(biological_weights_table, dataset, signat
     SBS24 = "#66a61e"
   )
   
-  cutoff <- switch(signature,
-                   SBS4 = cutoff_SBS4,
-                   SBS13 = cutoff_SBS13,
-                   NA)
-  
   color <- color_map[[signature]]
   
-  plot <- build_plot(table, signature, color, cutoff = cutoff, xmax = xmax)
+  plot <- build_plot(table, signature, color, xmax = xmax)
   return(plot)
 }
 
 
-analyze_signature <- function(signature_name, dataset, biological_weight_table, survival_data, cutoff = NULL, SBS4_cutoff = SBS4_survival_optimal_cutoff_paper_mean, SBS13_cutoff = SBS13_survival_optimal_cutoff_paper_mean, p_value = TRUE) {
+analyze_signature <- function(signature_name, dataset, biological_weight_table, survival_data, 
+                              # cutoff = NULL, 
+                              # SBS4_cutoff = SBS4_survival_optimal_cutoff_paper_mean, 
+                              # SBS13_cutoff = SBS13_survival_optimal_cutoff_paper_mean, 
+                              p_value = TRUE) {
   
   # Define styling constants
   font <- 12
@@ -597,11 +598,9 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
   
   # Helper function to create binary groups
   create_binary_groups <- function(threshold, threshold_label) {
-    # More efficient filtering using merge instead of nested subsetting
     high_patients <- biological_weight_table[biological_weight_table[[signature_name]] >= threshold, "Unique_Patient_Identifier", drop = FALSE]
     low_patients <- biological_weight_table[biological_weight_table[[signature_name]] < threshold, "Unique_Patient_Identifier", drop = FALSE]
     
-    # Use merge for more efficient joins
     high_group <- merge(survival_data, high_patients, by = "Unique_Patient_Identifier")
     low_group <- merge(survival_data, low_patients, by = "Unique_Patient_Identifier")
     
@@ -684,11 +683,11 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
   binary_surv_diff <- survdiff(Surv(overall_survival_months, status_numeric) ~ group, data = binary_df)
   binary_plot <- create_survival_plot(binary_surv_fit, binary_surv_diff, binary_df, "0.25", dataset)
   
-  # Determine optimal cutoff
-  optimal_cutoff <- switch(signature_name,
-                           "SBS4" = SBS4_cutoff,
-                           "SBS13" = SBS13_cutoff,
-                           cutoff)
+  # # Determine optimal cutoff
+  # optimal_cutoff <- switch(signature_name,
+  #                          "SBS4" = SBS4_cutoff,
+  #                          "SBS13" = SBS13_cutoff,
+  #                          cutoff)
   
   # Initialize results with base components
   results <- list(
@@ -697,82 +696,177 @@ analyze_signature <- function(signature_name, dataset, biological_weight_table, 
     signature_Low = binary_groups$low_group,
     signature_High = binary_groups$high_group
   )
-  
-  # Add optimal cutoff analysis if conditions are met
-  if (dataset %in% c("paper", "external", "all") && !is.null(optimal_cutoff)) {
-    # Create optimal binary groups
-    optimal_groups <- create_binary_groups(optimal_cutoff, optimal_cutoff)
-    optimal_df <- optimal_groups$combined_df
-    
-    # Perform survival analysis for optimal cutoff
-    optimal_hazard_ratio <- coxph(Surv(overall_survival_months, status_numeric) ~ group, data = optimal_df)
-    optimal_surv_fit <- survfit(Surv(overall_survival_months, status_numeric) ~ group, data = optimal_df)
-    optimal_surv_diff <- survdiff(Surv(overall_survival_months, status_numeric) ~ group, data = optimal_df)
-    optimal_plot <- create_survival_plot(optimal_surv_fit, optimal_surv_diff, optimal_df, optimal_cutoff, dataset)
-    
-    # Add optimal results to the results list
-    results <- c(results, list(
-      plot_optimal = optimal_plot,
-      hazard_optimal = optimal_hazard_ratio,
-      optimal_signature_Low = optimal_groups$low_group,
-      optimal_signature_High = optimal_groups$high_group
-    ))
-  }
+  # 
+  # # Add optimal cutoff analysis if conditions are met
+  # if (dataset %in% c("paper", "external", "all") && !is.null(optimal_cutoff)) {
+  #   # Create optimal binary groups
+  #   optimal_groups <- create_binary_groups(optimal_cutoff, optimal_cutoff)
+  #   optimal_df <- optimal_groups$combined_df
+  #   
+  #   # Perform survival analysis for optimal cutoff
+  #   optimal_hazard_ratio <- coxph(Surv(overall_survival_months, status_numeric) ~ group, data = optimal_df)
+  #   optimal_surv_fit <- survfit(Surv(overall_survival_months, status_numeric) ~ group, data = optimal_df)
+  #   optimal_surv_diff <- survdiff(Surv(overall_survival_months, status_numeric) ~ group, data = optimal_df)
+  #   optimal_plot <- create_survival_plot(optimal_surv_fit, optimal_surv_diff, optimal_df, optimal_cutoff, dataset)
+  #   
+  #   # Add optimal results to the results list
+  #   results <- c(results, list(
+  #     plot_optimal = optimal_plot,
+  #     hazard_optimal = optimal_hazard_ratio,
+  #     optimal_signature_Low = optimal_groups$low_group,
+  #     optimal_signature_High = optimal_groups$high_group
+  #   ))
+  # }
   
   return(results)
 }
 
 
-analyze_signature_complete <- function(signature_name, datasets = c("external", "paper"), cutoff = NULL) {
+
+analyze_signature_complete <- function(signature_name) {
+  
+  # Preprocess survival data
+  survival_data_all <- as.data.frame(cesa_all$samples) %>%
+    
+    mutate(
+      age = as.numeric(as.character(age)),
+      
+      overall_survival_months = as.numeric(
+        as.character(`overall_survival.(months)`)
+      ),
+      
+      status_numeric = ifelse(
+        `Status.(at.time.of.last.follow-up)` == "dead",
+        1,
+        0
+      ),
+      
+      prior_tx = as.integer(
+        previous.therapeutic.treatment.for.SCLC
+      ),
+      
+      sex = as.integer(sex == "male"),
+      
+      smoking = as.integer(
+        smoking_status == "smoker"
+      ),
+      
+      stage = case_when(
+        grepl("^I[Vv]", staging) ~ 4L,
+        grepl("^III", staging)  ~ 3L,
+        grepl("^II", staging)   ~ 2L,
+        grepl("^I", staging)    ~ 1L,
+        TRUE ~ NA_integer_
+      )
+    ) %>%
+    
+    filter(
+      !is.na(overall_survival_months),
+      !is.na(status_numeric)
+    )
+  
+  # Split patients by maf source
+  maf_patient_list <- split(
+    survival_data_all$Unique_Patient_Identifier,
+    survival_data_all$maf_source
+  )
+  
+  # Combined biological weights
+  biological_weights_combined <- rbind(
+    cesa_paper$mutational_signatures$biological_weights,
+    cesa_external$mutational_signatures$biological_weights
+  )
+  
+  # Per-maf-source biological weights
+  biological_weight_list <- lapply(
+    maf_patient_list,
+    function(ids) {
+      
+      biological_weights_combined[
+        biological_weights_combined$Unique_Patient_Identifier %in% ids,
+      ]
+      
+    }
+  )
+  
+  # Per-maf-source survival data
+  survival_data_list <- lapply(
+    maf_patient_list,
+    function(ids) {
+      
+      survival_data_all[
+        survival_data_all$Unique_Patient_Identifier %in% ids,
+      ]
+      
+    }
+  )
+  
+  # Add combined analysis
+  biological_weight_list$all <- biological_weights_combined
+  survival_data_list$all <- survival_data_all
   
   results <- list()
   
-  dataset_config <- list(
-    external = list(
-      biological_weight_table = biological_weights_external,
-      survival_data = survival_data_external
-    ),
-    paper = list(
-      biological_weight_table = biological_weights_paper,
-      survival_data = survival_data_paper
-    )
-  )
-  
-  for (dataset in datasets) {
-    cat(paste("Analyzing", signature_name, "for", dataset, "dataset...\n"))
+  # Run analysis for each maf source + combined
+  for (dataset_name in names(biological_weight_list)) {
     
-    sig_analysis <- dataset_config[[dataset]]$biological_weight_table
-    surv_data <- dataset_config[[dataset]]$survival_data
+    cat(
+      paste(
+        "Analyzing",
+        signature_name,
+        "for",
+        dataset_name,
+        "dataset...\n"
+      )
+    )
+    
+    sig_analysis <- biological_weight_list[[dataset_name]]
+    surv_data <- survival_data_list[[dataset_name]]
     
     tryCatch({
+      
       sig_result_binary <- analyze_signature(
-        signature_name = signature_name, 
-        dataset = dataset, 
-        biological_weight_table = sig_analysis, 
-        survival_data = surv_data, 
-        cutoff = cutoff
+        signature_name = signature_name,
+        dataset = dataset_name,
+        biological_weight_table = sig_analysis,
+        survival_data = surv_data
       )
       
-      results[[dataset]] <- list(
-        binary = sig_result_binary
-      )
+      results[[dataset_name]] <- sig_result_binary
       
-      cat(paste("Successfully analyzed", signature_name, "for", dataset, "dataset\n"))
+      cat(
+        paste(
+          "Successfully analyzed",
+          signature_name,
+          "for",
+          dataset_name,
+          "dataset\n"
+        )
+      )
       
     }, error = function(e) {
-      cat(paste("Skipping", dataset, "due to error:", e$message, "\n"))
-      results[[dataset]] <- NULL
+      
+      cat(
+        paste(
+          "Skipping",
+          dataset_name,
+          "due to error:",
+          e$message,
+          "\n"
+        )
+      )
+      
+      results[[dataset_name]] <- NULL
     })
   }
   
   return(results)
 }
 
-
 create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_based_data, effect_data) {
   
-  font <- 11
-  scale <- 10
+  font <- 12
+  scale <- 12
   
   # LEFT SIDE: Signature groupings for shared signatures
   left_signature_groupings <- list(
@@ -1217,3 +1311,213 @@ create_diverging_signature_plot_with_cancer_effect <- function(Li_data, ref_base
   return(list(label = panel_1, TMB = panel_2, effect = panel_3))
 }
 
+# run_cox <- function(df, formula_str, cohort_label) {
+#   vars  <- all.vars(as.formula(formula_str))[-c(1, 2)]
+#   df_cc <- as.data.frame(df) %>%
+#     filter(complete.cases(across(all_of(vars))))
+#   cat(sprintf("  %s: n=%d complete cases\n", cohort_label, nrow(df_cc)))
+#   fit <- summary(coxph(as.formula(formula_str), data = df_cc))
+#   list(fit_summary = fit, n = nrow(df_cc), cohort = cohort_label)
+# }
+# 
+# make_forest_plot <- function(uni_cox, multi_cox, sig_name) {
+#   font <- 11
+#   
+#   extract_cox_table <- function(cox_result, model_label) {
+#     ci <- cox_result$fit_summary$conf.int
+#     pv <- cox_result$fit_summary$coefficients[, "Pr(>|z|)"]
+#     data.frame(
+#       Variable     = rownames(ci),
+#       Hazard_Ratio = ci[, "exp(coef)"],
+#       CI_lower     = ci[, "lower .95"],
+#       CI_upper     = ci[, "upper .95"],
+#       p_value      = pv,
+#       Model        = model_label,
+#       row.names    = NULL,
+#       stringsAsFactors = FALSE
+#     )
+#   }
+#   
+#   var_labels <- c(
+#     SBS4     = "SBS4 activity",
+#     SBS13    = "SBS13 activity",
+#     age      = "Age",
+#     sex      = "Sex (male)",
+#     stage    = "Stage",
+#     smoking  = "Smoking",
+#     prior_tx = "Prior treatment"
+#   )
+#   combined_table <- bind_rows(
+#     extract_cox_table(uni_cox,   "Univariate"),
+#     extract_cox_table(multi_cox, "Multivariate")
+#   ) %>%
+#     mutate(
+#       Variable = dplyr::recode(Variable, !!!var_labels),
+#       Model    = factor(Model, levels = c("Univariate", "Multivariate"))
+#     )
+#   
+#   var_order <- combined_table %>%
+#     mutate(is_sig = grepl(sig_name, Variable)) %>%
+#     arrange(desc(is_sig), Variable) %>%
+#     pull(Variable) %>%
+#     unique()
+#   
+#   combined_table$Variable <- factor(combined_table$Variable, levels = rev(var_order))
+#   
+#   ggplot(combined_table, aes(x = Hazard_Ratio, y = Variable, color = Model)) +
+#     geom_point(
+#       position = position_dodge(width = 0.5),
+#       size = font * 0.18
+#     ) +
+#     geom_errorbarh(
+#       aes(xmin = CI_lower, xmax = CI_upper),
+#       position = position_dodge(width = 0.5),
+#       height = 0.15,
+#       linewidth = 0.5
+#     ) +
+#     geom_vline(xintercept = 1, linetype = "dashed", linewidth = 0.5) +
+#     scale_x_log10(expand = expansion(mult = c(0.02, 0.05))) +
+#     labs(
+#       x     = "Hazard Ratio (log scale)",
+#       y     = NULL,
+#       title = paste0(sig_name, " — univariate vs. multivariate Cox (George et al., n=", multi_cox$n, ")")
+#     ) +
+#     theme_minimal(base_size = font) +
+#     theme(
+#       text               = element_text(size = font),
+#       plot.title         = element_text(hjust = 0.5, size = font * 1.1, margin = margin(b = 4)),
+#       axis.title.x       = element_text(margin = margin(t = 4)),
+#       axis.text          = element_text(size = font * 0.9),
+#       axis.text.y        = element_text(margin = margin(r = 4)),
+#       legend.position    = "top",
+#       legend.title       = element_blank(),
+#       legend.text        = element_text(size = font * 0.9),
+#       legend.margin      = margin(t = -6, b = -8),
+#       legend.box.margin  = margin(0, 0, 0, 0),
+#       legend.spacing.x   = unit(4, "pt"),
+#       panel.grid.minor   = element_blank(),
+#       panel.grid.major.y = element_blank(),
+#       plot.margin        = margin(t = 4, r = 4, b = 12, l = 4)
+#     ) +
+#     guides(color = guide_legend(nrow = 1))
+# }
+
+# 
+# # Continuous signature-survival plot using HR vs signature activity
+# 
+# plot_signature_survival_continuous <- function(biological_weight_table,
+#                                                survival_data,
+#                                                dataset,
+#                                                signature_name,
+#                                                x_lim = c(0, 0.65),
+#                                                y_lim = c(0.05, 20)) {
+#   
+#   font    <- 12
+#   num_sig <- 2
+#   sig_col <- signature_name
+#   y_cap   <- y_lim[2]
+#   
+#   color_map_local <- list(SBS4  = "#a6761d", SBS13 = "#7570b3")
+#   color <- if (!is.null(color_map_local[[sig_col]])) color_map_local[[sig_col]] else "black"
+#   
+#   df_analysis <- as.data.frame(biological_weight_table) %>%
+#     select(Unique_Patient_Identifier, all_of(sig_col)) %>%
+#     inner_join(as.data.frame(survival_data), by = "Unique_Patient_Identifier") %>%
+#     filter(!is.na(.data[[sig_col]]),
+#            !is.na(overall_survival_months),
+#            !is.na(status_numeric))
+#   
+#   n        <- nrow(df_analysis)
+#   n_events <- sum(df_analysis$status_numeric)
+#   
+#   linear_fit <- coxph(
+#     as.formula(paste0("Surv(overall_survival_months, status_numeric) ~ ", sig_col)),
+#     data = df_analysis
+#   )
+#   beta        <- coef(linear_fit)[1]
+#   se_beta     <- sqrt(diag(linear_fit$var))[1]
+#   hr_01       <- exp(beta * 0.1)
+#   hr_01_lo    <- exp((beta - 1.96 * se_beta) * 0.1)
+#   hr_01_hi    <- exp((beta + 1.96 * se_beta) * 0.1)
+#   concordance <- summary(linear_fit)$concordance["C"]
+#   score_p     <- summary(linear_fit)$sctest["pvalue"]
+#   
+#   pspline_fit <- coxph(
+#     as.formula(paste0("Surv(overall_survival_months, status_numeric) ~ pspline(",
+#                       sig_col, ", df = 4)")),
+#     data = df_analysis
+#   )
+#   
+#   x_grid <- seq(x_lim[1], x_lim[2], length.out = 200)
+#   
+#   lp_grid <- predict(pspline_fit, newdata = setNames(data.frame(x_grid), sig_col),
+#                      type = "lp", se.fit = TRUE)
+#   lp_ref  <- predict(pspline_fit, newdata = setNames(data.frame(0), sig_col),
+#                      type = "lp")
+#   
+#   curve_df <- data.frame(
+#     x     = x_grid,
+#     HR    = exp(lp_grid$fit - as.numeric(lp_ref)),
+#     lower = exp(lp_grid$fit - as.numeric(lp_ref) - 1.96 * lp_grid$se.fit),
+#     upper = exp(lp_grid$fit - as.numeric(lp_ref) + 1.96 * lp_grid$se.fit)
+#   ) %>%
+#     filter(is.finite(HR), is.finite(lower)) %>%
+#     mutate(upper = pmin(upper, y_cap))
+#   
+#   fmt_p <- function(p) {
+#     if (p >= 0.01) paste0("italic(P) == ", signif(p, num_sig))
+#     else {
+#       pf <- gsub("e(-?\\d+)", " %*% 10^{\\1}", formatC(p, format = "e", digits = num_sig))
+#       paste0("italic(P) == ", pf)
+#     }
+#   }
+#   
+#   hr_string <- paste0(
+#     "italic(HR)[0.1] == ", round(hr_01, 2),
+#     "~(", round(hr_01_lo, 2), " - ", round(hr_01_hi, 2), ")"
+#   )
+#   c_string <- paste0("C == ", round(concordance, 3))
+#   p_string <- fmt_p(score_p)
+#   
+#   ann_y <- y_lim[1]^c(-.95, -0.75, -0.55)
+#   
+#   ggplot(curve_df, aes(x = x, y = HR)) +
+#     geom_ribbon(aes(ymin = lower, ymax = upper),
+#                 fill = color, alpha = 0.15) +
+#     geom_line(color = color, linewidth = 1) +
+#     geom_hline(yintercept = 1, linetype = "dashed",
+#                color = "grey50", linewidth = 0.5) +
+#     geom_rug(data        = df_analysis,
+#              aes(x = .data[[sig_col]]),
+#              inherit.aes = FALSE,
+#              sides       = "b",
+#              alpha       = 0.4,
+#              length      = unit(0.03, "npc")) +
+#     annotate("text", x = 0.02, y = ann_y[1],
+#              label = hr_string, parse = TRUE,
+#              hjust = 0, vjust = 0, size = font / 2.5, color = color) +
+#     annotate("text", x = 0.02, y = ann_y[2],
+#              label = c_string, parse = TRUE,
+#              hjust = 0, vjust = 0, size = font / 2.5, color = color) +
+#     annotate("text", x = 0.02, y = ann_y[3],
+#              label = p_string, parse = TRUE,
+#              hjust = 0, vjust = 0, size = font / 2.5, color = color) +
+#     scale_y_log10(
+#       breaks = c(0.05, 0.1, 0.25, 0.5, 1, 2, 4, 10),
+#       labels = c("0.05", "0.1", "0.25", "0.5", "1", "2", "4", "10")
+#     ) +
+#     coord_cartesian(ylim = y_lim) +
+#     scale_x_continuous(limits = x_lim,
+#                        expand = expansion(mult = c(0.01, 0.02))) +
+#     labs(x     = paste0(sig_col, " signature activity"),
+#          y     = "Hazard ratio (ref: activity = 0)",
+#          title = paste0(sig_col, " vs. overall survival (",
+#                         dataset, "; n=", n, ", events=", n_events, ")")) +
+#     theme_bw(base_size = font) +
+#     theme(
+#       plot.title       = element_text(size = font, face = "bold"),
+#       axis.title       = element_text(size = font),
+#       axis.text        = element_text(size = font * 0.9),
+#       panel.grid.minor = element_blank()
+#     )
+# }
