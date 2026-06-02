@@ -4,7 +4,9 @@ setwd("..") # the location the r script will save
 
 # Peform standard CES analysis for MutationalPatterns and deconstructSigs
 extractor <- "MutationalPatterns"
-if (FALSE){
+if (!file.exists(paste0("cesa_external_", extractor, ".rds")) ||
+    !file.exists(paste0("cesa_paper_", extractor, ".rds")) ||
+    !file.exists("cesa_all.rds")) {
   # Create cesa object that will include external data 
   cesa_external <- CESAnalysis(refset = "ces.refset.hg19")
   
